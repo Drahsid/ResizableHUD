@@ -67,16 +67,80 @@ namespace ResizableHUD
             this.commandManager = new PluginCommandManager<Plugin>(this, commands);
         }
 
-        private void DrawPercentOption(ref ResNodeConfig nodeConfig, float WIDTH) {
+        private void DrawIncrementDecrementButtons(ref ResNodeConfig nodeConfig, ref float value, string name)
+        {
+            ImGui.SameLine();
+            if (ImGui.ArrowButton($"###RESIZABLEHUD_BUTTON_DEC{name}", ImGuiDir.Down))
+            {
+                value -= config.EpsillonAmount;
+
+                if (value <= 0)
+                {
+                    value = 0;
+                }
+            }
+
+            ImGui.SameLine();
+            if (ImGui.ArrowButton($"###RESIZABLEHUD_BUTTON_INC{name}", ImGuiDir.Up))
+            {
+                value += config.EpsillonAmount;
+            }
+        }
+
+        private void DrawScaleOption(ref ResNodeConfig nodeConfig, float WIDTH) {
             ImGui.SetNextItemWidth(WIDTH);
             ImGui.InputFloat("Scale X##RESIZABLEHUD_INPUT_SCALEX", ref nodeConfig.ScaleX);
             ImGui.SameLine();
             ImGui.SetNextItemWidth(WIDTH);
             ImGui.InputFloat("Scale Y##RESIZABLEHUD_INPUT_SCALEY", ref nodeConfig.ScaleY);
 
-            ImGui.SliderFloat("Scale X##RESIZABLEHUD_SLIDER_SCALEX", ref nodeConfig.ScaleX, 0, 8.0f, "%0.025f");
-            ImGui.SliderFloat("Scale Y##RESIZABLEHUD_SLIDER_SCALEY", ref nodeConfig.ScaleY, 0, 8.0f, "%0.025f");
-            ImGui.Separator();
+            ImGui.SliderFloat("Scale X##RESIZABLEHUD_SLIDER_SCALEX", ref nodeConfig.ScaleX, 0, 8.0f);
+            DrawIncrementDecrementButtons(ref nodeConfig, ref nodeConfig.ScaleX, "SCALEX");
+            ImGui.SliderFloat("Scale Y##RESIZABLEHUD_SLIDER_SCALEY", ref nodeConfig.ScaleY, 0, 8.0f);
+            DrawIncrementDecrementButtons(ref nodeConfig, ref nodeConfig.ScaleY, "SCALEY");
+            ImGui.Spacing(); ImGui.Spacing();
+        }
+
+        private unsafe void DrawPosOption(ref ResNodeConfig nodeConfig, float WIDTH)
+        {
+            if (nodeConfig.UsePercentage == false)
+            {
+                ImGui.SetNextItemWidth(WIDTH);
+                ImGui.InputFloat("Pos X##RESIZABLEHUD_INPUT_POSX", ref nodeConfig.PosX);
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(WIDTH);
+                ImGui.InputFloat("Pos Y##RESIZABLEHUD_INPUT_POSY", ref nodeConfig.PosY);
+
+                ImGui.SliderFloat("Pos X##RESIZABLEHUD_SLIDER_SCALEX", ref nodeConfig.PosX, 0, ImGui.GetMainViewport().Size.X);
+                DrawIncrementDecrementButtons(ref nodeConfig, ref nodeConfig.PosX, "POSX");
+                ImGui.SliderFloat("Pos Y##RESIZABLEHUD_SLIDER_SCALEY", ref nodeConfig.PosY, 0, ImGui.GetMainViewport().Size.Y);
+                DrawIncrementDecrementButtons(ref nodeConfig, ref nodeConfig.PosY, "POSY");
+                ImGui.Spacing(); ImGui.Spacing();
+
+                ImGui.Checkbox("Force Visibility##RESIZABLEHUD_CHECKBOX_VIS", ref nodeConfig.ForceVisible);
+                ImGui.Checkbox("Use relative %##RESIZABLEHUD_CHECKBOX_PERCENT", ref nodeConfig.UsePercentage);
+            }
+            else
+            {
+                ImGui.SetNextItemWidth(WIDTH);
+                ImGui.InputFloat("Pos X##RESIZABLEHUD_INPUT_POSX%", ref nodeConfig.PosPercentX);
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(WIDTH);
+                ImGui.InputFloat("Pos Y##RESIZABLEHUD_INPUT_POSY%", ref nodeConfig.PosPercentY);
+
+                ImGui.SliderFloat("Pos X##RESIZABLEHUD_SLIDER_POSX%", ref nodeConfig.PosPercentX, 0, 1.0f);
+                DrawIncrementDecrementButtons(ref nodeConfig, ref nodeConfig.PosPercentX, "POS%X");
+                ImGui.SliderFloat("Pos Y##RESIZABLEHUD_SLIDER_POSY%", ref nodeConfig.PosPercentY, 0, 1.0f);
+                DrawIncrementDecrementButtons(ref nodeConfig, ref nodeConfig.PosPercentY, "POS%Y");
+                ImGui.Spacing(); ImGui.Spacing();
+
+                ImGui.Checkbox("Force Visibility##RESIZABLEHUD_CHECKBOX_VIS", ref nodeConfig.ForceVisible);
+                ImGui.Checkbox("Use relative %##RESIZABLEHUD_CHECKBOX_PERCENT", ref nodeConfig.UsePercentage);
+                ImGui.Spacing();
+
+                nodeConfig.PosX = ImGui.GetMainViewport().Size.X * nodeConfig.PosPercentX;
+                nodeConfig.PosY = ImGui.GetMainViewport().Size.Y * nodeConfig.PosPercentY;
+            }
         }
 
         private unsafe void OnDraw()
@@ -184,43 +248,10 @@ namespace ResizableHUD
                     {
                         float WIDTH = ImGui.CalcTextSize("F").X * 12;
 
-                        if (nodeConfig.UsePercentage == false)
-                        {
-                            DrawPercentOption(ref nodeConfig, WIDTH);
-
-                            ImGui.SetNextItemWidth(WIDTH);
-                            ImGui.InputFloat("Pos X##RESIZABLEHUD_INPUT_POSX", ref nodeConfig.PosX);
-                            ImGui.SameLine();
-                            ImGui.SetNextItemWidth(WIDTH);
-                            ImGui.InputFloat("Pos Y##RESIZABLEHUD_INPUT_POSY", ref nodeConfig.PosY);
-
-                            ImGui.SliderFloat("Pos X##RESIZABLEHUD_SLIDER_SCALEX", ref nodeConfig.PosX, 0, ImGui.GetMainViewport().Size.X, "%0.025f");
-                            ImGui.SliderFloat("Pos Y##RESIZABLEHUD_SLIDER_SCALEY", ref nodeConfig.PosY, 0, ImGui.GetMainViewport().Size.Y, "%0.025f");
-                            ImGui.Separator();
-
-                            ImGui.Checkbox("Force Visibility##RESIZABLEHUD_CHECKBOX_VIS", ref nodeConfig.ForceVisible);
-                            ImGui.Checkbox("Use relative %##RESIZABLEHUD_CHECKBOX_PERCENT", ref nodeConfig.UsePercentage);
-                        }
-                        else
-                        {
-                            DrawPercentOption(ref nodeConfig, WIDTH);
-
-                            ImGui.SetNextItemWidth(WIDTH);
-                            ImGui.InputFloat("Pos X##RESIZABLEHUD_INPUT_POSX%", ref nodeConfig.PosPercentX);
-                            ImGui.SameLine();
-                            ImGui.SetNextItemWidth(WIDTH);
-                            ImGui.InputFloat("Pos Y##RESIZABLEHUD_INPUT_POSY%", ref nodeConfig.PosPercentY);
-
-                            ImGui.SliderFloat("Pos X##RESIZABLEHUD_SLIDER_POSX%", ref nodeConfig.PosPercentX, 0, 1.0f);
-                            ImGui.SliderFloat("Pos Y##RESIZABLEHUD_SLIDER_POSY%", ref nodeConfig.PosPercentY, 0, 1.0f);
-                            ImGui.Separator();
-
-                            ImGui.Checkbox("Force Visibility##RESIZABLEHUD_CHECKBOX_VIS", ref nodeConfig.ForceVisible);
-                            ImGui.Checkbox("Use relative %##RESIZABLEHUD_CHECKBOX_PERCENT", ref nodeConfig.UsePercentage);
-
-                            nodeConfig.PosX = ImGui.GetMainViewport().Size.X * nodeConfig.PosPercentX;
-                            nodeConfig.PosY = ImGui.GetMainViewport().Size.Y * nodeConfig.PosPercentY;
-                        }
+                        DrawScaleOption(ref nodeConfig, WIDTH);
+                        DrawPosOption(ref nodeConfig, WIDTH);
+                        ImGui.Separator();
+                        ImGui.Spacing();
                     }
                 }
 
