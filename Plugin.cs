@@ -6,18 +6,27 @@ using Dalamud.Utility;
 using Dalamud.Interface.Windowing;
 using Dalamud.Logging;
 using Dalamud.Plugin;
+using Dalamud.Game.ClientState.Keys;
+using Dalamud.Data;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.Gui.Toast;
+using Dalamud.Game.Libc;
+using Dalamud.IoC;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using ResizableHUD.Attributes;
+using ImGuiNET;
 using System;
 using System.ComponentModel;
 using System.Numerics;
-using System.Runtime.InteropServices;
-using ImGuiNET;
 using System.Collections;
 using System.Text;
 using System.Linq;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace ResizableHUD
 {
@@ -32,6 +41,8 @@ namespace ResizableHUD
 
         public string Name => "ResizableHUD";
 
+        [PluginService] public static KeyState KeyState { get; private set; }
+
         public Plugin(DalamudPluginInterface pi, CommandManager commands, ChatGui chat, ClientState clientState) {
             this.pluginInterface = pi;
             this.chat = chat;
@@ -41,6 +52,10 @@ namespace ResizableHUD
             this.config = (Configuration)this.pluginInterface.GetPluginConfig();
             if (this.config == null) {
                 this.config = this.pluginInterface.Create<Configuration>();
+                if (this.config == null)
+                {
+                    this.config = new Configuration(pi);
+                }
             }
 
             // Initialize the UI
@@ -67,36 +82,60 @@ namespace ResizableHUD
         private unsafe void OnDraw()
         {
             ResNodeConfig nodeConfig = null;
-            try
-            {
+
+            //
+            try {
                 RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
                 AtkUnitList* allUnitList = &manager->AtkUnitManager.AllLoadedUnitsList;
                 AtkUnitList* unitList = null;
-                AtkUnitBase** entires = null;
+                AtkUnitBase** entries = null;
                 AtkUnitBase* unit = null;
                 string unitName = "";
 
+                if (allUnitList == null)
+                {
+                    throw new Exception("allUnitList null");
+                }
+
                 if (config.nodeConfigs == null)
                 {
-                    return;
+                    throw new Exception("No nodes");
                 }
 
                 for (int index = 0; index < allUnitList->Count; index++)
                 {
                     unitList = &allUnitList[index];
-                    entires = &unitList->AtkUnitEntries;
+                    entries = &unitList->AtkUnitEntries;
+
+                    if (unitList == null)
+                    {
+                        continue;
+                    }
+
+                    if (entries == null)
+                    {
+                        continue;
+                    }
+
                     for (int undex = 0; undex < unitList->Count; undex++)
                     {
-                        unit = entires[undex];
+                        unitName = "";
 
-                        if (unit is not null && new System.IntPtr(unit) != System.IntPtr.Zero)
-                        {
-                            AtkUnitBase UNIT = *unit;
-                            if (UNIT.Name is not null && new System.IntPtr(UNIT.Name) != System.IntPtr.Zero)
-                            {
-                                unitName = Marshal.PtrToStringAnsi(new System.IntPtr(UNIT.Name));
-                            }
+                        try {
+                            unit = entries[undex];
                         }
+                        catch (Exception e) {
+                            break;
+                        }
+
+                        if (unit == null || (uint)unit <= (uint)0x40) {
+                            break;
+                        }
+
+                        try {
+                            unitName = Marshal.PtrToStringAnsi((IntPtr)unit->Name);
+                        }
+                        catch(Exception e) {}
 
                         if (unitName == "")
                         {
@@ -120,11 +159,24 @@ namespace ResizableHUD
                 }
             }
             catch (Exception e) { }
+            //
 
             if (config.WindowOpen)
             {
+                if (!config.WindowEverOpened)
+                {
+                    ImGui.SetNextWindowSize(new Vector2(320, 240));
+                    ImGui.SetNextWindowPos(new Vector2(0, 0));
+                    config.WindowEverOpened = true;
+                }
                 nodeConfig = null;
-                ImGui.Begin("Resizable HUD");
+                ImGui.Begin("Resizable HUD###RESIZABLEHUDuAeh7Aq0vLJEL4Ov9sLat4sWtaQdudqyOlfRpzK");
+                ImGui.Text("Units");
+                if (config.nodeConfigs == null)
+                {
+                    ImGui.End();
+                    return;
+                }
                 for (int cndex = 0; cndex < config.nodeConfigs.Count; cndex++)
                 {
                     nodeConfig = config.nodeConfigs[cndex];
@@ -197,17 +249,23 @@ namespace ResizableHUD
         [HelpMessage("add [a] unit[s] to the config. For example \"/prhud add _TargetInfoCastBar _TargetCursor\".")]
         public unsafe void ResizableHud_Add(string command, string args) {
             string[] argv = args.Split(' ');
-            string targ = null;
-            ResNodeConfig nodeConfig = null;
+            string targ;
+            ResNodeConfig nodeConfig;
             ResNodeConfig newConfig;
             int index = 0;
+
+            if (argv == null || argv.Length == 0)
+            {
+                this.chat.PrintError("argv null?");
+                return;
+            }
 
             if (config.nodeConfigs == null || config.nodeConfigs.Count == 0) {
                 newConfig = new ResNodeConfig();
                 newConfig.Name = argv[0];
+                config.nodeConfigs = new List<ResNodeConfig>();
                 config.nodeConfigs.Add(newConfig);
                 index++;
-                this.chat.Print("Added first config.");
             }
 
             for (; index < argv.Length; index++) {
@@ -235,8 +293,8 @@ namespace ResizableHUD
         [HelpMessage("remove [a] unit[s] from the config. For example \"/prhud rem _TargetInfoCastBar _TargetCursor\".")]
         public unsafe void ResizableHud_Rem(string command, string args) {
             string[] argv = args.Split(' ');
-            string targ = null;
-            ResNodeConfig nodeConfig = null;
+            string targ;
+            ResNodeConfig nodeConfig;
 
             for (int index = 0; index < argv.Length; index++) {
                 targ = argv[index];
@@ -257,8 +315,8 @@ namespace ResizableHUD
         [HelpMessage("Change the X or Y scale of a [unit]. For example \"/prhud scale _TargetInfoCastBar X 3\".")]
         public unsafe void ResizableHud_Scale(string command, string args) {
             string[] argv = args.Split(' ');
-            string targ = null;
-            ResNodeConfig nodeConfig = null;
+            string targ;
+            ResNodeConfig nodeConfig;
 
             targ = argv[0];
             for (int cndex = 0; cndex < config.nodeConfigs.Count; cndex++) {
@@ -294,8 +352,8 @@ namespace ResizableHUD
         [HelpMessage("Change the X or Y pos of a [unit]. For example \"/prhud pos _TargetInfoCastBar X 320\".")]
         public unsafe void ResizableHud_Pos(string command, string args) {
             string[] argv = args.Split(' ');
-            string targ = null;
-            ResNodeConfig nodeConfig = null;
+            string targ;
+            ResNodeConfig nodeConfig;
 
             targ = argv[0];
             for (int cndex = 0; cndex < config.nodeConfigs.Count; cndex++) {

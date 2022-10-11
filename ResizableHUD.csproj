@@ -12,6 +12,16 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <Optimize>True</Optimize>
+	  <DebugType>portable</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	  <Optimize>True</Optimize>
+	  <DebugType>portable</DebugType>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<PackageReference Include="DalamudPackager" Version="2.1.6" />
 	</ItemGroup>

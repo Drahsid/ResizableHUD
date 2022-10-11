@@ -22,6 +22,7 @@ namespace ResizableHUD
 
         #region Saved configuration values
         public List<ResNodeConfig> nodeConfigs;
+        public bool WindowEverOpened = false;
         #endregion
 
         public bool WindowOpen = false;
