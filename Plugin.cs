@@ -74,8 +74,8 @@ namespace ResizableHUD
             ImGui.SetNextItemWidth(WIDTH);
             ImGui.InputFloat("Scale Y##RESIZABLEHUD_INPUT_SCALEY", ref nodeConfig.ScaleY);
 
-            ImGui.SliderFloat("Scale X##RESIZABLEHUD_SLIDER_SCALEX", ref nodeConfig.ScaleX, 0, 8.0f);
-            ImGui.SliderFloat("Scale Y##RESIZABLEHUD_SLIDER_SCALEY", ref nodeConfig.ScaleY, 0, 8.0f);
+            ImGui.SliderFloat("Scale X##RESIZABLEHUD_SLIDER_SCALEX", ref nodeConfig.ScaleX, 0, 8.0f, "%0.025f");
+            ImGui.SliderFloat("Scale Y##RESIZABLEHUD_SLIDER_SCALEY", ref nodeConfig.ScaleY, 0, 8.0f, "%0.025f");
             ImGui.Separator();
         }
 
@@ -194,8 +194,8 @@ namespace ResizableHUD
                             ImGui.SetNextItemWidth(WIDTH);
                             ImGui.InputFloat("Pos Y##RESIZABLEHUD_INPUT_POSY", ref nodeConfig.PosY);
 
-                            ImGui.SliderFloat("Pos X##RESIZABLEHUD_SLIDER_SCALEX", ref nodeConfig.PosX, 0, ImGui.GetMainViewport().Size.X);
-                            ImGui.SliderFloat("Pos Y##RESIZABLEHUD_SLIDER_SCALEY", ref nodeConfig.PosY, 0, ImGui.GetMainViewport().Size.Y);
+                            ImGui.SliderFloat("Pos X##RESIZABLEHUD_SLIDER_SCALEX", ref nodeConfig.PosX, 0, ImGui.GetMainViewport().Size.X, "%0.025f");
+                            ImGui.SliderFloat("Pos Y##RESIZABLEHUD_SLIDER_SCALEY", ref nodeConfig.PosY, 0, ImGui.GetMainViewport().Size.Y, "%0.025f");
                             ImGui.Separator();
 
                             ImGui.Checkbox("Force Visibility##RESIZABLEHUD_CHECKBOX_VIS", ref nodeConfig.ForceVisible);
@@ -266,23 +266,27 @@ namespace ResizableHUD
                 config.nodeConfigs = new List<ResNodeConfig>();
                 config.nodeConfigs.Add(newConfig);
                 index++;
+                this.chat.Print("Added first config.");
             }
 
             for (; index < argv.Length; index++) {
+                bool add = true;
                 targ = argv[index];
                 for (int cndex = 0; cndex < config.nodeConfigs.Count; cndex++) {
                     nodeConfig = config.nodeConfigs[cndex];
                     if (nodeConfig.Name == targ)
                     {
-                        continue;
+                        add = false;
+                        break;
                     }
-                    else
-                    {
-                        newConfig = new ResNodeConfig();
-                        newConfig.Name = targ;
-                        config.nodeConfigs.Add(newConfig);
-                        this.chat.Print("Added config.");
-                    }
+                }
+
+                if (add)
+                {
+                    newConfig = new ResNodeConfig();
+                    newConfig.Name = targ;
+                    config.nodeConfigs.Add(newConfig);
+                    this.chat.Print("Added config.");
                 }
             }
 
