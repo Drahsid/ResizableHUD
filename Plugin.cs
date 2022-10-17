@@ -145,85 +145,26 @@ namespace ResizableHUD
 
         private unsafe void OnDraw()
         {
+            RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+            AtkUnitBase* unit = null;
             ResNodeConfig nodeConfig = null;
 
-            //
-            try {
-                RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
-                AtkUnitList* allUnitList = &manager->AtkUnitManager.AllLoadedUnitsList;
-                AtkUnitList* unitList = null;
-                AtkUnitBase** entries = null;
-                AtkUnitBase* unit = null;
-                string unitName = "";
+            for (int cndex = 0; cndex < config.nodeConfigs.Count; cndex++) {
+                nodeConfig = config.nodeConfigs[cndex];
+                unit = manager->GetAddonByName(nodeConfig.Name);
 
-                if (allUnitList == null)
+                if (unit != null)
                 {
-                    throw new Exception("allUnitList null");
-                }
-
-                if (config.nodeConfigs == null)
-                {
-                    throw new Exception("No nodes");
-                }
-
-                for (int index = 0; index < allUnitList->Count; index++)
-                {
-                    unitList = &allUnitList[index];
-                    entries = &unitList->AtkUnitEntries;
-
-                    if (unitList == null)
-                    {
-                        continue;
-                    }
-
-                    if (entries == null)
-                    {
-                        continue;
-                    }
-
-                    for (int undex = 0; undex < unitList->Count; undex++)
-                    {
-                        unitName = "";
-
-                        try {
-                            unit = entries[undex];
-                        }
-                        catch (Exception e) {
-                            break;
-                        }
-
-                        if (unit == null || (uint)unit <= (uint)0x40) {
-                            break;
-                        }
-
-                        try {
-                            unitName = Marshal.PtrToStringAnsi((IntPtr)unit->Name);
-                        }
-                        catch(Exception e) {}
-
-                        if (unitName == "")
+                    if (nodeConfig.ForceVisible || unit->IsVisible) {
+                        unit->RootNode->SetScale(nodeConfig.ScaleX, nodeConfig.ScaleY);
+                        unit->RootNode->SetPositionFloat(nodeConfig.PosX, nodeConfig.PosY);
+                        if (nodeConfig.ForceVisible)
                         {
-                            continue;
-                        }
-
-                        for (int cndex = 0; cndex < config.nodeConfigs.Count; cndex++)
-                        {
-                            nodeConfig = config.nodeConfigs[cndex];
-                            if (unitName == nodeConfig.Name)
-                            {
-                                unit->RootNode->SetScale(nodeConfig.ScaleX, nodeConfig.ScaleY);
-                                unit->RootNode->SetPositionFloat(nodeConfig.PosX, nodeConfig.PosY);
-                                if (nodeConfig.ForceVisible)
-                                {
-                                    unit->IsVisible = nodeConfig.ForceVisible;
-                                }
-                            }
+                            unit->IsVisible = nodeConfig.ForceVisible;
                         }
                     }
                 }
             }
-            catch (Exception e) { }
-            //
 
             if (config.WindowOpen)
             {
@@ -233,14 +174,16 @@ namespace ResizableHUD
                     ImGui.SetNextWindowPos(new Vector2(0, 0));
                     config.WindowEverOpened = true;
                 }
+
                 nodeConfig = null;
-                ImGui.Begin("Resizable HUD###RESIZABLEHUDuAeh7Aq0vLJEL4Ov9sLat4sWtaQdudqyOlfRpzK");
+                ImGui.Begin("Resizable HUD###RESIZABLEHUDuAeh7Aq0vLJEL4Ov9s");
                 ImGui.Text("Units");
                 if (config.nodeConfigs == null)
                 {
                     ImGui.End();
                     return;
                 }
+
                 for (int cndex = 0; cndex < config.nodeConfigs.Count; cndex++)
                 {
                     nodeConfig = config.nodeConfigs[cndex];
