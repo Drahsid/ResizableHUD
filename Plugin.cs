@@ -28,6 +28,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
+[assembly: System.Reflection.AssemblyVersion("1.0.0.*")]
+
 namespace ResizableHUD
 {
     public class Plugin : IDalamudPlugin {
