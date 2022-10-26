@@ -58,6 +58,18 @@ namespace ResizableHUD
                 }
             }
 
+            for (int index = 0; index < this.config.nodeConfigs.Count; index++) {
+                ResNodeConfig nodeConfig = this.config.nodeConfigs[index];
+                if (nodeConfig.DoNotPosition == null)
+                {
+                    nodeConfig.DoNotPosition = false;
+                }
+                if (nodeConfig.DoNotScale == null)
+                {
+                    nodeConfig.DoNotScale = false;
+                }
+            }
+
             // Initialize the UI
             this.windowSystem = new WindowSystem(typeof(Plugin).AssemblyQualifiedName);
             this.pluginInterface.UiBuilder.Draw += OnDraw;
@@ -111,9 +123,9 @@ namespace ResizableHUD
                 ImGui.SetNextItemWidth(WIDTH);
                 ImGui.InputFloat("Pos Y##RESIZABLEHUD_INPUT_POSY", ref nodeConfig.PosY);
 
-                ImGui.SliderFloat("Pos X##RESIZABLEHUD_SLIDER_SCALEX", ref nodeConfig.PosX, 0, ImGui.GetMainViewport().Size.X);
+                ImGui.SliderFloat("Pos X##RESIZABLEHUD_SLIDER_SCALEX", ref nodeConfig.PosX, -ImGui.GetMainViewport().Size.X, ImGui.GetMainViewport().Size.X);
                 DrawIncrementDecrementButtons(ref nodeConfig, ref nodeConfig.PosX, "POSX");
-                ImGui.SliderFloat("Pos Y##RESIZABLEHUD_SLIDER_SCALEY", ref nodeConfig.PosY, 0, ImGui.GetMainViewport().Size.Y);
+                ImGui.SliderFloat("Pos Y##RESIZABLEHUD_SLIDER_SCALEY", ref nodeConfig.PosY, -ImGui.GetMainViewport().Size.Y, ImGui.GetMainViewport().Size.Y);
                 DrawIncrementDecrementButtons(ref nodeConfig, ref nodeConfig.PosY, "POSY");
                 ImGui.Spacing(); ImGui.Spacing();
 
@@ -128,9 +140,9 @@ namespace ResizableHUD
                 ImGui.SetNextItemWidth(WIDTH);
                 ImGui.InputFloat("Pos Y##RESIZABLEHUD_INPUT_POSY%", ref nodeConfig.PosPercentY);
 
-                ImGui.SliderFloat("Pos X##RESIZABLEHUD_SLIDER_POSX%", ref nodeConfig.PosPercentX, 0, 1.0f);
+                ImGui.SliderFloat("Pos X##RESIZABLEHUD_SLIDER_POSX%", ref nodeConfig.PosPercentX, -1.0f, 1.0f);
                 DrawIncrementDecrementButtons(ref nodeConfig, ref nodeConfig.PosPercentX, "POS%X");
-                ImGui.SliderFloat("Pos Y##RESIZABLEHUD_SLIDER_POSY%", ref nodeConfig.PosPercentY, 0, 1.0f);
+                ImGui.SliderFloat("Pos Y##RESIZABLEHUD_SLIDER_POSY%", ref nodeConfig.PosPercentY, -1.0f, 1.0f);
                 DrawIncrementDecrementButtons(ref nodeConfig, ref nodeConfig.PosPercentY, "POS%Y");
                 ImGui.Spacing(); ImGui.Spacing();
 
@@ -156,8 +168,12 @@ namespace ResizableHUD
                 if (unit != null)
                 {
                     if (nodeConfig.ForceVisible || unit->IsVisible) {
-                        unit->RootNode->SetScale(nodeConfig.ScaleX, nodeConfig.ScaleY);
-                        unit->RootNode->SetPositionFloat(nodeConfig.PosX, nodeConfig.PosY);
+                        if (nodeConfig.DoNotScale == false) {
+                            unit->RootNode->SetScale(nodeConfig.ScaleX, nodeConfig.ScaleY);
+                        }
+                        if (nodeConfig.DoNotPosition == false) {
+                            unit->RootNode->SetPositionFloat(nodeConfig.PosX, nodeConfig.PosY);
+                        }
                         if (nodeConfig.ForceVisible)
                         {
                             unit->IsVisible = nodeConfig.ForceVisible;
@@ -193,6 +209,8 @@ namespace ResizableHUD
 
                         DrawScaleOption(ref nodeConfig, WIDTH);
                         DrawPosOption(ref nodeConfig, WIDTH);
+                        ImGui.Checkbox("Do not change position", ref nodeConfig.DoNotPosition);
+                        ImGui.Checkbox("Do not change scale", ref nodeConfig.DoNotScale);
                         ImGui.Separator();
                         ImGui.Spacing();
                     }

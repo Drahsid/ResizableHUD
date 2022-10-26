@@ -15,6 +15,8 @@ namespace ResizableHUD
         public float PosPercentX = 0.0f;
         public float PosPercentY = 0.0f;
         public bool ForceVisible = false;
+        public bool DoNotPosition = false;
+        public bool DoNotScale = false;
     }
 
     public class Configuration : IPluginConfiguration {
