@@ -3,6 +3,7 @@
     "Name": "Resizable HUD",
     "InternalName": "ResizableHUD",
     "Description": "Allows you to more freely and precisely scale and position HUD elements.",
+    "Punchline": "Move and scale vanilla hud elements to your liking!",
     "RepoUrl": "https://github.com/Drahsid/ResizableHUD",
     "DalamudApiLevel": 7
 }
