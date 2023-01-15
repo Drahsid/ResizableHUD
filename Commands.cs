@@ -156,7 +156,7 @@ namespace ResizableHUD
                                 break;
                             }
                     }
-                    Globals.Chat.Print($"Scaled to {targ} {value} {(Globals.Config.nodeConfigs[cndex].UsePercentage ? "%" : "")}");
+                    Globals.Chat.Print($"Scaled to {targ} {value}");
                 }
             }
 
