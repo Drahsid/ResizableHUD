@@ -39,10 +39,18 @@ namespace ResizableHUD
             });
         }
 
+        public static void Uninitialize()
+        {
+            Globals.CommandManager.RemoveHandler("/prhud");
+            Globals.CommandManager.RemoveHandler("/prhudadd");
+            Globals.CommandManager.RemoveHandler("/prhudrem");
+            Globals.CommandManager.RemoveHandler("/prhudscale");
+            Globals.CommandManager.RemoveHandler("/prhudpos");
+        }
+
         public static void ToggleConfig()
         {
-            Globals.Config.WindowOpen = !Globals.Config.WindowOpen;
-            Globals.WindowSystem.GetWindow(ConfigWindow.ConfigWindowName).IsOpen = Globals.Config.WindowOpen;
+            Globals.WindowSystem.GetWindow(ConfigWindow.ConfigWindowName).IsOpen = !Globals.WindowSystem.GetWindow(ConfigWindow.ConfigWindowName).IsOpen;
         }
 
         public static void OnPrHud(string command, string args)

@@ -28,7 +28,6 @@ namespace ResizableHUD
         public float EpsillonAmount = 0.025f;
         #endregion
 
-        public bool WindowOpen = false;
         private DalamudPluginInterface PluginInterface;
 
         public void Initialize(DalamudPluginInterface pluginInterface) {

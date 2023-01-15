@@ -38,6 +38,7 @@ namespace ResizableHUD
         protected virtual void Dispose(bool disposing) {
             if (!disposing) return;
 
+            Commands.Uninitialize();
             Globals.PluginCommandManager.Dispose();
 
             PluginInterface.SavePluginConfig(Globals.Config);

@@ -65,12 +65,13 @@ namespace ResizableHUD
                 {
                     float WIDTH = ImGui.CalcTextSize("F").X * 12;
 
-                    AddonManager.DrawScaleOption(ref nodeConfig, WIDTH, Globals.Config.EpsillonAmount);
-                    AddonManager.DrawPosOption(ref nodeConfig, WIDTH, Globals.Config.EpsillonAmount);
+                    DrawScaleOption(ref nodeConfig, WIDTH, Globals.Config.EpsillonAmount);
+                    DrawPosOption(ref nodeConfig, WIDTH, Globals.Config.EpsillonAmount);
                     ImGui.Checkbox("Do not change position", ref nodeConfig.DoNotPosition);
                     ImGui.Checkbox("Do not change scale", ref nodeConfig.DoNotScale);
                     ImGui.Separator();
                     ImGui.Spacing();
+                    ImGui.TreePop();
                 }
             }
 
