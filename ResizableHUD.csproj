@@ -27,6 +27,16 @@
 	<PropertyGroup Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'">
     	<DalamudLibPath>$(DALAMUD_HOME)/</DalamudLibPath>
   	</PropertyGroup>
+  
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <NoWarn>1701;1702;CS0472;CA1416</NoWarn>
+	  <LangVersion>11.0</LangVersion>
+	</PropertyGroup>
+  
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	  <NoWarn>1701;1702;CS0472;CA1416</NoWarn>
+	  <LangVersion>11.0</LangVersion>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<!--You may need to adjust these paths yourself. These point to a Dalamud assembly in AppData.-->

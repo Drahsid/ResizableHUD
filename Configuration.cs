@@ -1,5 +1,6 @@
 ﻿using Dalamud.Configuration;
 using Dalamud.Plugin;
+using Dalamud.Logging;
 using System;
 using System.Collections.Generic;
 
@@ -23,25 +24,33 @@ namespace ResizableHUD
         int IPluginConfiguration.Version { get; set; }
 
         #region Saved configuration values
-        public List<ResNodeConfig> nodeConfigs;
+        public List<ResNodeConfig> nodeConfigs = null;
         public bool WindowEverOpened = false;
         public float EpsillonAmount = 0.025f;
         #endregion
 
         public bool WindowOpen = false;
 
-        private DalamudPluginInterface pluginInterface;
-
-        public void Initialize(DalamudPluginInterface pi)
-        {
-            this.pluginInterface = pi;
-        }
-
-        public void Save()
-        {
-            if (this.pluginInterface != null)
+        public void Initialize() {
+            if (nodeConfigs == null)
             {
-                this.pluginInterface.SavePluginConfig(this);
+                return;
+            }
+
+            // upgrade old config
+            for (int index = 0; index < nodeConfigs.Count; index++)
+            {
+                ResNodeConfig nodeConfig = nodeConfigs[index];
+                if (nodeConfig != null) {
+                    if (nodeConfig.DoNotPosition == null)
+                    {
+                        nodeConfig.DoNotPosition = false;
+                    }
+                    if (nodeConfig.DoNotScale == null)
+                    {
+                        nodeConfig.DoNotScale = false;
+                    }
+                }
             }
         }
     }
