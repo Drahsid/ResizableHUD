@@ -100,7 +100,7 @@ namespace ResizableHUD
                     newConfig = new ResNodeConfig();
                     newConfig.Name = targ;
                     Globals.Config.nodeConfigs.Add(newConfig);
-                    Globals.Chat.Print("Added Globals.Config.");
+                    Globals.Chat.Print("Added config.");
                 }
             }
 
@@ -123,7 +123,7 @@ namespace ResizableHUD
                     {
                         Globals.Config.nodeConfigs.RemoveAt(cndex);
 
-                        Globals.Chat.Print("Removed Globals.Config.");
+                        Globals.Chat.Print("Removed config.");
                     }
                 }
             }
@@ -136,6 +136,7 @@ namespace ResizableHUD
             string[] argv = args.Split(' ');
             string targ;
             ResNodeConfig nodeConfig;
+            bool found = false;
 
             targ = argv[0];
             for (int cndex = 0; cndex < Globals.Config.nodeConfigs.Count; cndex++)
@@ -143,6 +144,7 @@ namespace ResizableHUD
                 nodeConfig = Globals.Config.nodeConfigs[cndex];
                 if (nodeConfig.Name == targ)
                 {
+                    found = true;
                     targ = argv[1];
                     switch (targ.ToUpper())
                     {
@@ -165,10 +167,11 @@ namespace ResizableHUD
                     }
                     Globals.Chat.Print("Scaled.");
                 }
-                else
-                {
-                    Globals.Chat.PrintError("Please make sure the unit exists.");
-                }
+            }
+
+            if (found == false)
+            {
+                Globals.Chat.PrintError("Please make sure the unit exists.");
             }
 
             Globals.Config.Save();
@@ -179,6 +182,7 @@ namespace ResizableHUD
             string[] argv = args.Split(' ');
             string targ;
             ResNodeConfig nodeConfig;
+            bool found = false;
 
             targ = argv[0];
             for (int cndex = 0; cndex < Globals.Config.nodeConfigs.Count; cndex++)
@@ -186,6 +190,7 @@ namespace ResizableHUD
                 nodeConfig = Globals.Config.nodeConfigs[cndex];
                 if (nodeConfig.Name == targ)
                 {
+                    found = true;
                     targ = argv[1];
                     switch (targ.ToUpper())
                     {
@@ -206,12 +211,12 @@ namespace ResizableHUD
                                 break;
                             }
                     }
-                    Globals.Chat.Print("Scaled.");
+                    Globals.Chat.Print("Moved.");
                 }
-                else
-                {
-                    Globals.Chat.PrintError("Please make sure the unit exists.");
-                }
+            }
+
+            if (found == false) {
+                Globals.Chat.PrintError("Please make sure the unit exists.");
             }
 
             Globals.Config.Save();
