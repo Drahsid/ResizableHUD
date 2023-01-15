@@ -1,11 +1,7 @@
 ﻿using Dalamud.Game.ClientState;
+using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
 using Dalamud.Interface.Windowing;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ResizableHUD
 {
@@ -14,7 +10,8 @@ namespace ResizableHUD
         public static Configuration Config;
         public static ChatGui Chat;
         public static ClientState ClientState;
-        public static PluginCommandManager<Plugin> CommandManager;
+        public static CommandManager CommandManager;
+        public static PluginCommandManager<Plugin> PluginCommandManager;
         public static WindowSystem WindowSystem;
     }
 }

@@ -1,4 +1,5 @@
 ﻿using ResizableHUD.Attributes;
+using Dalamud.Game.Command;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,16 +10,47 @@ namespace ResizableHUD
 {
     internal class Commands
     {
-        [Command("/prhud")]
-        [HelpMessage("Toggle the visibility of the configuration window.")]
-        public void OnPrHud(string command, string args)
+        public static void Initialize()
         {
-            Globals.Config.WindowOpen = !Globals.Config.WindowOpen;
+            Globals.CommandManager.AddHandler("/prhud", new CommandInfo(OnPrHud)
+            {
+                HelpMessage = "Toggle the visibility of the configuration window.",
+                ShowInHelp= true,
+            });
+
+            Globals.CommandManager.AddHandler("/prhudadd", new CommandInfo(ResizableHud_Add)
+            {
+                HelpMessage = "add [a] unit[s] to the Globals.Config. For example \"/prhud add _TargetInfoCastBar _TargetCursor\".",
+                ShowInHelp = true,
+            });
+            Globals.CommandManager.AddHandler("/prhudrem", new CommandInfo(ResizableHud_Rem)
+            {
+                HelpMessage = "remove [a] unit[s] from the Globals.Config. For example \"/prhud rem _TargetInfoCastBar _TargetCursor\".",
+                ShowInHelp = true,
+            });
+            Globals.CommandManager.AddHandler("/prhudscale", new CommandInfo(ResizableHud_Scale) {
+                HelpMessage = "Change the X or Y scale of a [unit]. For example \"/prhud scale _TargetInfoCastBar X 3\".",
+                ShowInHelp = true,
+            });
+            Globals.CommandManager.AddHandler("/prhudpos", new CommandInfo(ResizableHud_Pos)
+            {
+                HelpMessage = "Change the X or Y pos of a [unit]. For example \"/prhud pos _TargetInfoCastBar X 320\".",
+                ShowInHelp = true,
+            });
         }
 
-        [Command("/prhudadd")]
-        [HelpMessage("add [a] unit[s] to the Globals.Config. For example \"/prhud add _TargetInfoCastBar _TargetCursor\".")]
-        public unsafe void ResizableHud_Add(string command, string args)
+        public static void ToggleConfig()
+        {
+            Globals.Config.WindowOpen = !Globals.Config.WindowOpen;
+            Globals.WindowSystem.GetWindow(ConfigWindow.ConfigWindowName).IsOpen = Globals.Config.WindowOpen;
+        }
+
+        public static void OnPrHud(string command, string args)
+        {
+            ToggleConfig();
+        }
+
+        public static unsafe void ResizableHud_Add(string command, string args)
         {
             string[] argv = args.Split(' ');
             string targ;
@@ -67,9 +99,7 @@ namespace ResizableHUD
             Globals.Config.Save();
         }
 
-        [Command("/prhudrem")]
-        [HelpMessage("remove [a] unit[s] from the Globals.Config. For example \"/prhud rem _TargetInfoCastBar _TargetCursor\".")]
-        public unsafe void ResizableHud_Rem(string command, string args)
+        public static unsafe void ResizableHud_Rem(string command, string args)
         {
             string[] argv = args.Split(' ');
             string targ;
@@ -93,9 +123,7 @@ namespace ResizableHUD
             Globals.Config.Save();
         }
 
-        [Command("/prhudscale")]
-        [HelpMessage("Change the X or Y scale of a [unit]. For example \"/prhud scale _TargetInfoCastBar X 3\".")]
-        public unsafe void ResizableHud_Scale(string command, string args)
+        public static unsafe void ResizableHud_Scale(string command, string args)
         {
             string[] argv = args.Split(' ');
             string targ;
@@ -138,9 +166,7 @@ namespace ResizableHUD
             Globals.Config.Save();
         }
 
-        [Command("/prhudpos")]
-        [HelpMessage("Change the X or Y pos of a [unit]. For example \"/prhud pos _TargetInfoCastBar X 320\".")]
-        public unsafe void ResizableHud_Pos(string command, string args)
+        public static unsafe void ResizableHud_Pos(string command, string args)
         {
             string[] argv = args.Split(' ');
             string targ;

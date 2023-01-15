@@ -26,24 +26,19 @@ namespace ResizableHUD
             Globals.WindowSystem = new WindowSystem(typeof(Plugin).AssemblyQualifiedName);
             Globals.WindowSystem.AddWindow(new ConfigWindow());
             PluginInterface.UiBuilder.Draw += OnDraw;
-            PluginInterface.UiBuilder.OpenConfigUi += ToggleConfig;
+            PluginInterface.UiBuilder.OpenConfigUi += Commands.ToggleConfig;
 
-            Globals.CommandManager = new PluginCommandManager<Plugin>(this, commandManager);
+            Globals.CommandManager = commandManager;
+            Globals.PluginCommandManager = new PluginCommandManager<Plugin>(this, commandManager);
+            Commands.Initialize();
         }
-
-        private void ToggleConfig()
-        {
-            Globals.Config.WindowOpen = !Globals.Config.WindowOpen;
-            Globals.WindowSystem.GetWindow(ConfigWindow.ConfigWindowName).IsOpen= Globals.Config.WindowOpen;
-        }
-
         
 
         #region IDisposable Support
         protected virtual void Dispose(bool disposing) {
             if (!disposing) return;
 
-            Globals.CommandManager.Dispose();
+            Globals.PluginCommandManager.Dispose();
 
             PluginInterface.SavePluginConfig(Globals.Config);
 
