@@ -25,7 +25,6 @@ namespace ResizableHUD
 
         #region Saved configuration values
         public List<ResNodeConfig> nodeConfigs = null;
-        public bool WindowEverOpened = false;
         public float EpsillonAmount = 0.025f;
         #endregion
 
