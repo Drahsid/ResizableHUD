@@ -30,8 +30,11 @@ namespace ResizableHUD
         #endregion
 
         public bool WindowOpen = false;
+        private DalamudPluginInterface PluginInterface;
 
-        public void Initialize() {
+        public void Initialize(DalamudPluginInterface pluginInterface) {
+            PluginInterface = pluginInterface;
+
             if (nodeConfigs == null)
             {
                 return;
@@ -52,6 +55,11 @@ namespace ResizableHUD
                     }
                 }
             }
+        }
+
+        public void Save()
+        {
+            PluginInterface.SavePluginConfig(this);
         }
     }
 }
