@@ -2,9 +2,6 @@
 using Dalamud.Game.Command;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ResizableHUD
 {
@@ -62,7 +59,6 @@ namespace ResizableHUD
         {
             string[] argv = args.Split(' ');
             string targ;
-            ResNodeConfig nodeConfig;
             ResNodeConfig newConfig;
             int index = 0;
 
@@ -87,8 +83,7 @@ namespace ResizableHUD
                 targ = argv[index];
                 for (int cndex = 0; cndex < Globals.Config.nodeConfigs.Count; cndex++)
                 {
-                    nodeConfig = Globals.Config.nodeConfigs[cndex];
-                    if (nodeConfig.Name == targ)
+                    if (Globals.Config.nodeConfigs[cndex].Name == targ)
                     {
                         add = false;
                         break;
@@ -111,18 +106,15 @@ namespace ResizableHUD
         {
             string[] argv = args.Split(' ');
             string targ;
-            ResNodeConfig nodeConfig;
 
             for (int index = 0; index < argv.Length; index++)
             {
                 targ = argv[index];
                 for (int cndex = 0; cndex < Globals.Config.nodeConfigs.Count; cndex++)
                 {
-                    nodeConfig = Globals.Config.nodeConfigs[cndex];
-                    if (nodeConfig.Name == targ)
+                    if (Globals.Config.nodeConfigs[cndex].Name == targ)
                     {
                         Globals.Config.nodeConfigs.RemoveAt(cndex);
-
                         Globals.Chat.Print("Removed config.");
                     }
                 }
@@ -135,27 +127,26 @@ namespace ResizableHUD
         {
             string[] argv = args.Split(' ');
             string targ;
-            ResNodeConfig nodeConfig;
             bool found = false;
 
             targ = argv[0];
             for (int cndex = 0; cndex < Globals.Config.nodeConfigs.Count; cndex++)
             {
-                nodeConfig = Globals.Config.nodeConfigs[cndex];
-                if (nodeConfig.Name == targ)
+                if (Globals.Config.nodeConfigs[cndex].Name == targ)
                 {
+                    float value = float.Parse(argv[2]);
                     found = true;
                     targ = argv[1];
                     switch (targ.ToUpper())
                     {
                         case ("X"):
                             {
-                                nodeConfig.ScaleX = float.Parse(argv[2]);
+                                Globals.Config.nodeConfigs[cndex].ScaleX = value;
                                 break;
                             }
                         case ("Y"):
                             {
-                                nodeConfig.ScaleY = float.Parse(argv[2]);
+                                Globals.Config.nodeConfigs[cndex].ScaleY = value;
                                 break;
                             }
                         default:
@@ -165,7 +156,7 @@ namespace ResizableHUD
                                 break;
                             }
                     }
-                    Globals.Chat.Print("Scaled.");
+                    Globals.Chat.Print($"Scaled to {targ} {value} {(Globals.Config.nodeConfigs[cndex].UsePercentage ? "%" : "")}");
                 }
             }
 
@@ -181,27 +172,37 @@ namespace ResizableHUD
         {
             string[] argv = args.Split(' ');
             string targ;
-            ResNodeConfig nodeConfig;
             bool found = false;
 
             targ = argv[0];
             for (int cndex = 0; cndex < Globals.Config.nodeConfigs.Count; cndex++)
             {
-                nodeConfig = Globals.Config.nodeConfigs[cndex];
-                if (nodeConfig.Name == targ)
+                if (Globals.Config.nodeConfigs[cndex].Name == targ)
                 {
+                    float value = float.Parse(argv[2]);
                     found = true;
                     targ = argv[1];
                     switch (targ.ToUpper())
                     {
                         case ("X"):
                             {
-                                nodeConfig.PosX = float.Parse(argv[2]);
+                                if (Globals.Config.nodeConfigs[cndex].UsePercentage)
+                                {
+                                    Globals.Config.nodeConfigs[cndex].PosPercentX = value;
+                                }
+                                else {
+                                    Globals.Config.nodeConfigs[cndex].PosX = value;
+                                }
                                 break;
                             }
                         case ("Y"):
                             {
-                                nodeConfig.PosY = float.Parse(argv[2]);
+                                if (Globals.Config.nodeConfigs[cndex].UsePercentage) { 
+                                    Globals.Config.nodeConfigs[cndex].PosPercentY = value;
+                                }
+                                else {
+                                    Globals.Config.nodeConfigs[cndex].PosY = value;
+                                }
                                 break;
                             }
                         default:
@@ -211,7 +212,7 @@ namespace ResizableHUD
                                 break;
                             }
                     }
-                    Globals.Chat.Print("Moved.");
+                    Globals.Chat.Print($"Moved to {targ} {value} {(Globals.Config.nodeConfigs[cndex].UsePercentage ? "%" : "")}");
                 }
             }
 
