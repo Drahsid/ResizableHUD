@@ -51,8 +51,8 @@ namespace ResizableHUD
             this.clientState = clientState;
 
             // Get or create a configuration object
-            this.config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-            this.config.Initialize(pluginInterface);
+            this.config = pi.GetPluginConfig() as Configuration ?? new Configuration();
+            this.config.Initialize(pi);
 
             for (int index = 0; index < this.config.nodeConfigs.Count; index++) {
                 ResNodeConfig nodeConfig = this.config.nodeConfigs[index];
