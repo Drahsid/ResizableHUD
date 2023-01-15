@@ -51,23 +51,15 @@ namespace ResizableHUD
             this.clientState = clientState;
 
             // Get or create a configuration object
-            this.config = (Configuration)this.pluginInterface.GetPluginConfig();
-            if (this.config == null) {
-                this.config = this.pluginInterface.Create<Configuration>();
-                if (this.config == null)
-                {
-                    this.config = new Configuration(pi);
-                }
-            }
+            this.config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+            this.config.Initialize(pluginInterface);
 
             for (int index = 0; index < this.config.nodeConfigs.Count; index++) {
                 ResNodeConfig nodeConfig = this.config.nodeConfigs[index];
-                if (nodeConfig.DoNotPosition == null)
-                {
+                if (nodeConfig.DoNotPosition == null) {
                     nodeConfig.DoNotPosition = false;
                 }
-                if (nodeConfig.DoNotScale == null)
-                {
+                if (nodeConfig.DoNotScale == null) {
                     nodeConfig.DoNotScale = false;
                 }
             }

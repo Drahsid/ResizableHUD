@@ -30,9 +30,9 @@ namespace ResizableHUD
 
         public bool WindowOpen = false;
 
-        private readonly DalamudPluginInterface pluginInterface;
+        private DalamudPluginInterface pluginInterface;
 
-        public Configuration(DalamudPluginInterface pi)
+        public void Initialize(DalamudPluginInterface pi)
         {
             this.pluginInterface = pi;
         }
