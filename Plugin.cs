@@ -7,7 +7,7 @@ using ImGuiNET;
 using System;
 using System.Numerics;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.0.*")]
+[assembly: System.Reflection.AssemblyVersion("1.0.*")]
 
 namespace ResizableHUD
 {
@@ -32,7 +32,12 @@ namespace ResizableHUD
             Globals.PluginCommandManager = new PluginCommandManager<Plugin>(this, commandManager);
             Commands.Initialize();
         }
-        
+
+        private void OnDraw()
+        {
+            AddonManager.UpdateAddons();
+            Globals.WindowSystem.Draw();
+        }
 
         #region IDisposable Support
         protected virtual void Dispose(bool disposing) {
@@ -45,12 +50,6 @@ namespace ResizableHUD
 
             PluginInterface.UiBuilder.Draw -= OnDraw;
             Globals.WindowSystem.RemoveAllWindows();
-        }
-
-        private void OnDraw()
-        {
-            AddonManager.UpdateAddons();
-            Globals.WindowSystem.Draw();
         }
 
         public void Dispose() {
