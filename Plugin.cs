@@ -3,11 +3,13 @@ using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Kernel;
 using ImGuiNET;
 using System;
+using System.Diagnostics;
 using System.Numerics;
 
-[assembly: System.Reflection.AssemblyVersion("1.1.1")]
+[assembly: System.Reflection.AssemblyVersion("1.1.2")]
 
 namespace ResizableHUD;
 

@@ -21,6 +21,8 @@ internal class AddonManager
     private const uint NodeColor = 0xFF00FFFF;
     private const uint NodeEditColor = 0xFFFF00FF;
     private const uint NodeAnchorColor = 0xFFFFFF00;
+    private const uint NodeParentColor = 0xFFFFFFFF;
+    private const uint NodeParentAnchorColor = 0xFF0000FF;
     private static Vector2 LastMousePos = Vector2.Zero;
 
     public static unsafe bool CheckIfInConfig(AtkUnitBase* unit) {
@@ -89,8 +91,6 @@ internal class AddonManager
             unit->RootNode->SetScale(scaleX, scaleY);
         }
 
-        Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(res);
-
         if (node.UsePercentagePos) {
             node.PosX = node.PosPercentX * vp.X;
             node.PosY = node.PosPercentY * vp.Y;
@@ -139,7 +139,6 @@ internal class AddonManager
                     DrawNodePreview(ref node);
                 }
 
-                DrawAnchorOption(ref node);
                 ImGuiStuff.DrawCheckboxTooltip("Edit", ref node.Editing, "Allows editing the transform with the arrow keys. Hold Shift to scale");
                 ImGuiStuff.DrawCheckboxTooltip("No position", ref node.DoNotPosition, "Disables positioning for this element");
                 ImGui.SameLine();
@@ -147,17 +146,21 @@ internal class AddonManager
                 ImGuiStuff.DrawCheckboxTooltip("Force visibility", ref node.ForceVisible, "Forces the element to be visible.");
 
                 ImGui.Separator();
+                DrawAnchorOption(ref node);
+
                 if (!node.DoNotPosition) {
+                    ImGui.Separator();
                     DrawPosOption(ref node, width);
                     ImGuiStuff.DrawCheckboxTooltip("Use relative##RESIZABLEHUD_DROPDOWN_POS_PERCENT", ref node.UsePercentagePos, "Position value represents a percentage instead of a pixel");
                 }
 
-                ImGui.Separator();
                 if (!node.DoNotScale) {
+                    ImGui.Separator();
                     DrawScaleOption(ref node, width);
                     ImGuiStuff.DrawCheckboxTooltip("Use relative##RESIZABLEHUD_DROPDOWN_SCL_PERCENT", ref node.UsePercentageScale, "Scaling is scaled to base resolution");
                 }
 
+                ImGui.Separator();
                 if (ImGui.Button("Remove")) {
                     config.Remove(node);
                     break;
@@ -184,13 +187,24 @@ internal class AddonManager
         }
 
         Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
-        Vector2 offset = GetAnchorOffset(node.anchor, size);
+        Vector2 offset = GetAnchorOffset(node.Anchor, size);
         Vector2 pos = GetTLPos(ref node);
+
         ImDrawListPtr drawist = ImGui.GetForegroundDrawList(ImGuiHelpers.MainViewport);
 
         drawist.AddRect(pos, pos + size, NodeColor);
         drawist.AddCircleFilled(pos + offset, 4.0f, NodeAnchorColor);
         drawist.AddText(pos, NodeColor, node.Name);
+
+        if (node.Attachment != "") {
+            AtkUnitBase* parent = manager->GetAddonByName(node.Attachment);
+            Vector2 ppos = RaptureAtkUnitManagerHelper.GetNodePosition(parent->RootNode);
+            Vector2 psize = RaptureAtkUnitManagerHelper.GetNodeScaledSize(parent->RootNode);
+            Vector2 poffset = GetAnchorOffset(node.AttachmentAnchor, psize);
+            drawist.AddRect(ppos, ppos + psize, NodeParentColor);
+            drawist.AddCircleFilled(ppos + poffset, 4.0f, NodeParentAnchorColor);
+            drawist.AddText(ppos, NodeParentColor, node.Attachment);
+        }
     }
 
     private static unsafe void DrawNodeEditor(ref ResNodeConfig nodeConfig) {
@@ -205,7 +219,7 @@ internal class AddonManager
 
         Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
         Vector2 pos = GetTLPos(ref nodeConfig);
-        Vector2 offset = GetAnchorOffset(nodeConfig.anchor, size);
+        Vector2 offset = GetAnchorOffset(nodeConfig.Anchor, size);
         Vector2 box_size = new Vector2(16.0f, 16.0f) * ImGuiHelpers.GlobalScale;
         Vector2 bottom = pos + GetAnchorOffset(PositionAnchor.BOTTOM_CENTER, size) - (box_size * 0.5f);
         Vector2 right = pos + GetAnchorOffset(PositionAnchor.CENTER_RIGHT, size) - (box_size * 0.5f);
@@ -225,7 +239,8 @@ internal class AddonManager
 
     private static unsafe void DrawAnchorOption(ref ResNodeConfig node) {
         string[] anchor_names = Enum.GetNames(typeof(PositionAnchor));
-        string current_anchor_label = anchor_names[(int)node.anchor];
+        string current_anchor_label = anchor_names[(int)node.Anchor];
+        string current_attach_anchor_label = anchor_names[(int)node.AttachmentAnchor];
         Vector2 offset = Vector2.Zero;
         Vector2 size = Vector2.Zero;
         Vector2 vp = ImGui.GetMainViewport().Size;
@@ -234,33 +249,60 @@ internal class AddonManager
 
         if (unit != null) {
             size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
-            offset = GetAnchorOffset(node.anchor, size);
+            offset = GetAnchorOffset(node.Anchor, size);
         }
 
-        if (ImGui.BeginCombo("Position Anchor", current_anchor_label)) {
-            for (int index = 0; index < anchor_names.Length; index++) {
-                bool selected = (node.anchor == (PositionAnchor)index);
+        if (!node.DoNotPosition) {
+            if (ImGui.BeginCombo("Position Anchor", current_anchor_label)) {
+                for (int index = 0; index < anchor_names.Length; index++) {
+                    bool selected = (node.Anchor == (PositionAnchor)index);
 
-                // Add each enum value as a selectable item in the dropdown
-                if (ImGui.Selectable(anchor_names[index], selected)) {
-                    node.anchor = (PositionAnchor)index;
+                    // Add each enum value as a selectable item in the dropdown
+                    if (ImGui.Selectable(anchor_names[index], selected)) {
+                        node.Anchor = (PositionAnchor)index;
 
-                    if (unit != null) {
-                        offset -= GetAnchorOffset(node.anchor, size);
-                        node.PosX -= offset.X;
-                        node.PosY -= offset.Y;
-                        node.PosPercentX = node.PosX / vp.X;
-                        node.PosPercentY = node.PosY / vp.Y;
+                        if (unit != null) {
+                            offset -= GetAnchorOffset(node.Anchor, size);
+                            node.PosX -= offset.X;
+                            node.PosY -= offset.Y;
+                            node.PosPercentX = node.PosX / vp.X;
+                            node.PosPercentY = node.PosY / vp.Y;
+                        }
+                    }
+
+                    // Set the currently selected item as highlighted
+                    if (selected) {
+                        ImGui.SetItemDefaultFocus();
                     }
                 }
 
-                // Set the currently selected item as highlighted
-                if (selected) {
-                    ImGui.SetItemDefaultFocus();
-                }
+                ImGui.EndCombo();
             }
+            ImGuiStuff.DrawTooltip("Point on this ui element that position is relative to");
+        }
 
-            ImGui.EndCombo();
+        ImGui.InputText("Attachment", ref node.Attachment, 64);
+        ImGuiStuff.DrawTooltip("Name of ui element to attach to, leave empty for none");
+
+        if (node.Attachment != "") {
+            if (ImGui.BeginCombo("Attachment Anchor", current_attach_anchor_label)) {
+                for (int index = 0; index < anchor_names.Length; index++) {
+                    bool selected = (node.AttachmentAnchor == (PositionAnchor)index);
+
+                    // Add each enum value as a selectable item in the dropdown
+                    if (ImGui.Selectable(anchor_names[index], selected)) {
+                        node.AttachmentAnchor = (PositionAnchor)index;
+                    }
+
+                    // Set the currently selected item as highlighted
+                    if (selected) {
+                        ImGui.SetItemDefaultFocus();
+                    }
+                }
+
+                ImGui.EndCombo();
+            }
+            ImGuiStuff.DrawTooltip("Point on attached ui element (if any) to anchor to");
         }
     }
 
@@ -368,8 +410,22 @@ internal class AddonManager
 
         if (unit != null) {
             Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
-            Vector2 offset = GetAnchorOffset(node.anchor, size);
-            return new Vector2(node.PosX - offset.X, node.PosY - offset.Y);
+            Vector2 offset = GetAnchorOffset(node.Anchor, size);
+            Vector2 pos = new Vector2(node.PosX - offset.X, node.PosY - offset.Y); // absolute top left
+
+            if (node.Attachment != "") { 
+                AtkUnitBase* parent = manager->GetAddonByName(node.Attachment);
+                if (parent != null) {
+                    Vector2 psize = RaptureAtkUnitManagerHelper.GetNodeScaledSize(parent->RootNode);
+                    Vector2 ppos = RaptureAtkUnitManagerHelper.GetNodePosition(parent->RootNode);
+                    psize = GetAnchorOffset(node.AttachmentAnchor, psize);
+                    
+                    pos.X += (ppos.X + psize.X);
+                    pos.Y += (ppos.Y + psize.Y);
+                }
+            }
+
+            return pos;
         }
 
         return new Vector2(node.PosX, node.PosY);

@@ -29,7 +29,9 @@ public class ResNodeConfig {
     public bool DoNotPosition = false;
     public bool DoNotScale = false;
     public bool Editing = false;
-    public PositionAnchor anchor = PositionAnchor.TOP_LEFT;
+    public string Attachment;
+    public PositionAnchor Anchor = PositionAnchor.TOP_LEFT;
+    public PositionAnchor AttachmentAnchor = PositionAnchor.TOP_LEFT;
 }
 
 public class Configuration : IPluginConfiguration {
@@ -84,6 +86,10 @@ public class Configuration : IPluginConfiguration {
                         config.DoNotScale = false;
                     }
 
+                    if (config.Attachment == null) {
+                        config.Attachment = "";
+                    }
+
                     if (config.UsePercentage != null) {
                         if ((bool)config.UsePercentage) {
                             config.UsePercentagePos = (bool)config.UsePercentage;
@@ -92,7 +98,7 @@ public class Configuration : IPluginConfiguration {
                     }
                 }
             }
-        }        
+        }
     }
 
     public void Save()
