@@ -7,7 +7,7 @@ using ImGuiNET;
 using System;
 using System.Numerics;
 
-[assembly: System.Reflection.AssemblyVersion("1.1.0")]
+[assembly: System.Reflection.AssemblyVersion("1.1.1")]
 
 namespace ResizableHUD;
 

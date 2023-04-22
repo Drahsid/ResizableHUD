@@ -36,23 +36,34 @@ public class Configuration : IPluginConfiguration {
     int IPluginConfiguration.Version { get; set; }
 
     #region Saved configuration values
-    public List<ResNodeConfig> nodeConfigs = new List<ResNodeConfig>();
-    public float EpsillonAmount = 0.025f;
+    [Obsolete] public List<ResNodeConfig>? nodeConfigs;
+    public Dictionary<ulong, List<ResNodeConfig>> CIDNodeConfigMap = new Dictionary<ulong, List<ResNodeConfig>>();
     public int BaseResolutionX = -1;
     public int BaseResolutionY = -1;
     public bool OnlyPeekVisible = false;
     public bool DrawAddonInspector = false;
-    public RaptureAtkUnitManagerHelper.UnitListEntry OnlyPeekInLayer = RaptureAtkUnitManagerHelper.UnitListEntry.LoadedUnits;
+    public UnitListEntry OnlyPeekInLayer = UnitListEntry.LoadedUnits;
     #endregion
 
     private DalamudPluginInterface PluginInterface;
 
+    public List<ResNodeConfig>? GetCurrentNodeConfig() {
+        ulong cid = Globals.ClientState.LocalContentId;
+        if (CIDNodeConfigMap.ContainsKey(cid)) {
+            return CIDNodeConfigMap[cid];
+        }
+
+        CIDNodeConfigMap.Add(cid, new List<ResNodeConfig>());
+        return CIDNodeConfigMap[cid];
+    }
+
     public void Initialize(DalamudPluginInterface pluginInterface) {
+        ulong cid = Globals.ClientState.LocalContentId;
         PluginInterface = pluginInterface;
 
-        if (nodeConfigs == null)
-        {
-            return;
+        if (nodeConfigs != null) {
+            CIDNodeConfigMap.Add(cid, nodeConfigs);
+            nodeConfigs = null;
         }
 
         if (BaseResolutionX == -1) {
@@ -62,28 +73,26 @@ public class Configuration : IPluginConfiguration {
             BaseResolutionY = (int)ImGui.GetMainViewport().Size.Y;
         }
 
-        // upgrade old config
-        for (int index = 0; index < nodeConfigs.Count; index++)
-        {
-            ResNodeConfig nodeConfig = nodeConfigs[index];
-            if (nodeConfig != null) {
-                if (nodeConfig.DoNotPosition == null)
-                {
-                    nodeConfig.DoNotPosition = false;
-                }
-                if (nodeConfig.DoNotScale == null)
-                {
-                    nodeConfig.DoNotScale = false;
-                }
+        foreach (List<ResNodeConfig> node_config in CIDNodeConfigMap.Values) {
+            // upgrade old config
+            foreach (ResNodeConfig config in node_config) {
+                if (config != null) {
+                    if (config.DoNotPosition == null) {
+                        config.DoNotPosition = false;
+                    }
+                    if (config.DoNotScale == null) {
+                        config.DoNotScale = false;
+                    }
 
-                if (nodeConfig.UsePercentage != null) {
-                    if ((bool)nodeConfig.UsePercentage) {
-                        nodeConfig.UsePercentagePos = (bool)nodeConfig.UsePercentage;
-                        nodeConfig.UsePercentage = null;
+                    if (config.UsePercentage != null) {
+                        if ((bool)config.UsePercentage) {
+                            config.UsePercentagePos = (bool)config.UsePercentage;
+                            config.UsePercentage = null;
+                        }
                     }
                 }
             }
-        }
+        }        
     }
 
     public void Save()

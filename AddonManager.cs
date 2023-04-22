@@ -11,6 +11,8 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using static ResizableHUD.ResNodeConfig;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ResizableHUD;
 
@@ -22,238 +24,238 @@ internal class AddonManager
     private static Vector2 LastMousePos = Vector2.Zero;
 
     public static unsafe bool CheckIfInConfig(AtkUnitBase* unit) {
+        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
         string name = Marshal.PtrToStringAnsi(new IntPtr(unit->Name));
-        bool dupe = false;
-        foreach (ResNodeConfig config in Globals.Config.nodeConfigs) {
-            if (config.Name == name) {
-                dupe = true;
-                break;
-            }
-        }
-
-        return dupe;
+        return config.Any(node => node.Name == name);
     }
 
     public static unsafe void AddToConfig(AtkUnitBase* unit) {
-        string name = Marshal.PtrToStringAnsi(new IntPtr(unit->Name));
+        if (CheckIfInConfig(unit)) {
+            return;
+        }
+
+        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
         AtkResNode* res = unit->RootNode;
         Vector2 pos = RaptureAtkUnitManagerHelper.GetNodePosition(res);
         Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(res);
         Vector2 scale = RaptureAtkUnitManagerHelper.GetNodeScale(res);
         Vector2 vp = ImGui.GetMainViewport().Size;
-        bool visible = RaptureAtkUnitManagerHelper.GetNodeVisible(res);
+        string name = Marshal.PtrToStringAnsi(new IntPtr(unit->Name));
 
-        if (!CheckIfInConfig(unit)) {
-            ResNodeConfig cfg = new ResNodeConfig();
-            cfg.Name = name;
-            cfg.DoNotPosition = false;
-            cfg.DoNotScale = false;
-            cfg.PosX = pos.X;
-            cfg.PosY = pos.Y;
-            cfg.PosPercentX = pos.X / vp.X;
-            cfg.PosPercentY = pos.Y / vp.Y;
-            cfg.ForceVisible = false;
-            cfg.ScaleX = scale.X;
-            cfg.ScaleY = scale.Y;
-            cfg.UsePercentagePos = false;
-            cfg.UsePercentageScale = false;
-            Globals.Config.nodeConfigs.Add(cfg);
-            Globals.Config.nodeConfigs.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-        }
+        ResNodeConfig cfg = new ResNodeConfig {
+            Name = name,
+            DoNotPosition = false,
+            DoNotScale = false,
+            PosX = pos.X,
+            PosY = pos.Y,
+            PosPercentX = pos.X / vp.X,
+            PosPercentY = pos.Y / vp.Y,
+            ForceVisible = false,
+            ScaleX = scale.X,
+            ScaleY = scale.Y,
+            UsePercentagePos = false,
+            UsePercentageScale = false
+        };
+
+        config.Add(cfg);
+        config.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
     }
 
-    public static unsafe void UpdateAddon(ref ResNodeConfig nodeConfig) {
+    public static unsafe void UpdateAddon(ref ResNodeConfig node) {
         RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = null;
+        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
+        if (unit == null) {
+            return;
+        }
+
+        if (!node.ForceVisible && !unit->IsVisible) {
+            return;
+        }
+
+        AtkResNode* res = unit->RootNode;
         Vector2 vp = ImGui.GetMainViewport().Size;
 
-        unit = manager->GetAddonByName(nodeConfig.Name);
-        if (unit != null) {
-            AtkResNode* res = unit->RootNode;
+        float ratioX = vp.X / (float)Globals.Config.BaseResolutionX;
+        float ratioY = vp.Y / (float)Globals.Config.BaseResolutionY;
+        float scaleX = node.ScaleX;
+        float scaleY = node.ScaleY;
 
-            if (nodeConfig.ForceVisible || unit->IsVisible) {
-                float ratio_x = vp.X / (float)Globals.Config.BaseResolutionX;
-                float ratio_y = vp.Y / (float)Globals.Config.BaseResolutionY;
-                float scale_x = nodeConfig.ScaleX;
-                float scale_y = nodeConfig.ScaleY;
+        if (node.UsePercentageScale) {
+            scaleX *= ratioX;
+            scaleY *= ratioY;
+        }
 
+        if (!node.DoNotScale) {
+            unit->RootNode->SetScale(scaleX, scaleY);
+        }
 
-                if (nodeConfig.UsePercentageScale) {
-                    scale_x *= ratio_x;
-                    scale_y *= ratio_y;
-                }
+        Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(res);
 
-                if (nodeConfig.DoNotScale == false) {
-                    unit->RootNode->SetScale(scale_x, scale_y);
-                }
+        if (node.UsePercentagePos) {
+            node.PosX = node.PosPercentX * vp.X;
+            node.PosY = node.PosPercentY * vp.Y;
+        }
 
-                Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(res);
-                Vector2 pos = GetTLPos(ref nodeConfig);
+        if (!node.DoNotPosition) {
+            Vector2 pos = GetTLPos(ref node);
+            unit->RootNode->SetPositionFloat(pos.X, pos.Y);
+        }
 
-                if (nodeConfig.UsePercentagePos) {
-                    nodeConfig.PosX = nodeConfig.PosPercentX * vp.X;
-                    nodeConfig.PosY = nodeConfig.PosPercentY * vp.Y;
-                }
-
-                if (nodeConfig.DoNotPosition == false) {
-                    unit->RootNode->SetPositionFloat(pos.X, pos.Y);
-                }
-
-
-                if (nodeConfig.ForceVisible) {
-                    unit->IsVisible = nodeConfig.ForceVisible;
-                }
-            }
+        if (node.ForceVisible) {
+            unit->IsVisible = node.ForceVisible;
         }
     }
 
     public static void UpdateAddons() {
-        ResNodeConfig nodeConfig = null;
+        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
 
-        if (Globals.Config.nodeConfigs == null) {
+        if (config == null) {
             return;
         }
 
-        for (int cndex = 0; cndex < Globals.Config.nodeConfigs.Count; cndex++) {
-            nodeConfig = Globals.Config.nodeConfigs[cndex];
-            UpdateAddon(ref nodeConfig);
+        for (int index = 0; index < config.Count; index++) {
+            ResNodeConfig node = config[index];
+            UpdateAddon(ref node);
         }
     }
 
-    public static void DrawAddonNodes()
-    {
-        ResNodeConfig nodeConfig = null;
+    public static void DrawAddonNodes() {
+        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
 
-        for (int cndex = 0; cndex < Globals.Config.nodeConfigs.Count; cndex++)
-        {
-            nodeConfig = Globals.Config.nodeConfigs[cndex];
-            if (nodeConfig == null)
-            {
-                continue;
-            }
+        if (config == null) {
+            return;
+        }
 
-            if (ImGui.TreeNode(nodeConfig.Name + "##RESIZABLEHUD_DROPDOWN_" + nodeConfig.Name))
-            {
-                float WIDTH = ImGui.CalcTextSize("F").X * 12;
+        float width = ImGui.CalcTextSize("F").X * 12;
 
-                if (nodeConfig.Editing) {
-                    DrawNodeEditor(ref nodeConfig);
+        for (int index = 0; index < config.Count; index++) {
+            ResNodeConfig node = config[index];
+
+            if (ImGui.TreeNode(node.Name + "##RESIZABLEHUD_DROPDOWN_" + node.Name)) {
+                if (node.Editing) {
+                    DrawNodeEditor(ref node);
                 }
                 else {
-                    DrawNodePreview(ref nodeConfig);
+                    DrawNodePreview(ref node);
                 }
 
-                DrawAnchorOption(ref nodeConfig);
-                ImGuiStuff.DrawCheckboxTooltip("Edit", ref nodeConfig.Editing, "When enabled, allows you to edit the transform with your keyboard using the arrow keys. Holding Shift will allow you to scale");
-                ImGuiStuff.DrawCheckboxTooltip("No position", ref nodeConfig.DoNotPosition, "When enabled, does not update the position");
+                DrawAnchorOption(ref node);
+                ImGuiStuff.DrawCheckboxTooltip("Edit", ref node.Editing, "Allows editing the transform with the arrow keys. Hold Shift to scale");
+                ImGuiStuff.DrawCheckboxTooltip("No position", ref node.DoNotPosition, "Disables positioning for this element");
                 ImGui.SameLine();
-                ImGuiStuff.DrawCheckboxTooltip("No scale", ref nodeConfig.DoNotScale, "When enabled, does not update the scale");
-                ImGuiStuff.DrawCheckboxTooltip("Force visibility", ref nodeConfig.ForceVisible, "When enabled, the addon is internally forced to be visible");
+                ImGuiStuff.DrawCheckboxTooltip("No scale", ref node.DoNotScale, "Disables scaling for this element");
+                ImGuiStuff.DrawCheckboxTooltip("Force visibility", ref node.ForceVisible, "Forces the element to be visible.");
 
                 ImGui.Separator();
-                if (!nodeConfig.DoNotPosition) {
-                    DrawPosOption(ref nodeConfig, WIDTH);
-                    ImGuiStuff.DrawCheckboxTooltip("Use relative##RESIZABLEHUD_DROPDOWN_POS_PERCENT", ref nodeConfig.UsePercentagePos, "When enabled, the position value will represent the percent on-screen that the addon is positioned");
+                if (!node.DoNotPosition) {
+                    DrawPosOption(ref node, width);
+                    ImGuiStuff.DrawCheckboxTooltip("Use relative##RESIZABLEHUD_DROPDOWN_POS_PERCENT", ref node.UsePercentagePos, "Position value represents a percentage instead of a pixel");
                 }
 
                 ImGui.Separator();
-                if (!nodeConfig.DoNotScale) {
-                    DrawScaleOption(ref nodeConfig, WIDTH);
-                    ImGuiStuff.DrawCheckboxTooltip("Use relative##RESIZABLEHUD_DROPDOWN_SCL_PERCENT", ref nodeConfig.UsePercentageScale, "When enabled, the scale value will be scaled by the base resolution");
+                if (!node.DoNotScale) {
+                    DrawScaleOption(ref node, width);
+                    ImGuiStuff.DrawCheckboxTooltip("Use relative##RESIZABLEHUD_DROPDOWN_SCL_PERCENT", ref node.UsePercentageScale, "Scaling is scaled to base resolution");
                 }
-                
 
                 if (ImGui.Button("Remove")) {
-                    Globals.Config.nodeConfigs.Remove(nodeConfig);
+                    config.Remove(node);
                     break;
                 }
 
                 ImGui.Separator();
                 ImGui.TreePop();
             }
+
             if (ImGui.IsItemHovered()) {
-                DrawNodePreview(ref nodeConfig);
+                DrawNodePreview(ref node);
             }
         }
 
         LastMousePos = ImGui.GetMousePos();
     }
 
-    private static unsafe void DrawNodePreview(ref ResNodeConfig nodeConfig) {
+    private static unsafe void DrawNodePreview(ref ResNodeConfig node) {
         RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
 
-        AtkUnitBase* unit = manager->GetAddonByName(nodeConfig.Name);
-        if (unit != null) {
-            Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
-            Vector2 offset = GetAnchorOffset(nodeConfig.anchor, size);
-            Vector2 pos = GetTLPos(ref nodeConfig);
-
-            ImGui.GetForegroundDrawList(ImGuiHelpers.MainViewport).AddRect(pos, pos + size, NodeColor);
-            ImGui.GetForegroundDrawList(ImGuiHelpers.MainViewport).AddCircleFilled(pos + offset, 4.0f, NodeAnchorColor);
-            ImGui.GetForegroundDrawList(ImGuiHelpers.MainViewport).AddText(pos, NodeColor, nodeConfig.Name);
+        if (unit == null) {
+            return;
         }
+
+        Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
+        Vector2 offset = GetAnchorOffset(node.anchor, size);
+        Vector2 pos = GetTLPos(ref node);
+        ImDrawListPtr drawist = ImGui.GetForegroundDrawList(ImGuiHelpers.MainViewport);
+
+        drawist.AddRect(pos, pos + size, NodeColor);
+        drawist.AddCircleFilled(pos + offset, 4.0f, NodeAnchorColor);
+        drawist.AddText(pos, NodeColor, node.Name);
     }
 
     private static unsafe void DrawNodeEditor(ref ResNodeConfig nodeConfig) {
         RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
         AtkUnitBase* unit = manager->GetAddonByName(nodeConfig.Name);
 
-        //ImGui.SetNextFrameWantCaptureMouse(true);
+        // ImGui.SetNextFrameWantCaptureMouse(true);
 
-        if (unit != null) {
-            Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
-            Vector2 pos = GetTLPos(ref nodeConfig);
-            Vector2 offset = GetAnchorOffset(nodeConfig.anchor, size);
-            Vector2 box_size = new Vector2(16.0f, 16.0f) * ImGuiHelpers.GlobalScale;
-            Vector2 bottom = pos + GetAnchorOffset(PositionAnchor.BOTTOM_CENTER, size) - (box_size * 0.5f);
-            Vector2 right = pos + GetAnchorOffset(PositionAnchor.CENTER_RIGHT, size) - (box_size * 0.5f);
-            
-
-            ImGui.GetForegroundDrawList(ImGuiHelpers.MainViewport).AddRect(pos, pos + size, NodeEditColor);
-            ImGui.GetForegroundDrawList(ImGuiHelpers.MainViewport).AddCircleFilled(pos + offset, 4.0f, NodeAnchorColor);
-            //ImGui.GetForegroundDrawList(ImGuiHelpers.MainViewport).AddRectFilled(bottom, bottom + box_size, NodeAnchorColor);
-            //ImGui.GetForegroundDrawList(ImGuiHelpers.MainViewport).AddRectFilled(right, right + box_size, NodeAnchorColor);
-            ImGui.GetForegroundDrawList(ImGuiHelpers.MainViewport).AddText(pos, NodeColor, nodeConfig.Name);
-
-            // doesn't work well (refresh rate related?
-            // NodeEditorMouseControls(ref nodeConfig, pos, size, bottom, right, box_size);
-            NodeEditorKeyboardControls(ref nodeConfig, pos, size, box_size);
+        if (unit == null) {
+            return;
         }
+
+        Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
+        Vector2 pos = GetTLPos(ref nodeConfig);
+        Vector2 offset = GetAnchorOffset(nodeConfig.anchor, size);
+        Vector2 box_size = new Vector2(16.0f, 16.0f) * ImGuiHelpers.GlobalScale;
+        Vector2 bottom = pos + GetAnchorOffset(PositionAnchor.BOTTOM_CENTER, size) - (box_size * 0.5f);
+        Vector2 right = pos + GetAnchorOffset(PositionAnchor.CENTER_RIGHT, size) - (box_size * 0.5f);
+        ImDrawListPtr drawlist = ImGui.GetForegroundDrawList(ImGuiHelpers.MainViewport);
+
+        drawlist.AddRect(pos, pos + size, NodeEditColor);
+        drawlist.AddCircleFilled(pos + offset, 4.0f, NodeAnchorColor);
+        // drawList.AddRectFilled(bottom, bottom + boxSize, NodeAnchorColor);
+        // drawList.AddRectFilled(right, right + boxSize, NodeAnchorColor);
+        drawlist.AddText(pos, NodeColor, nodeConfig.Name);
+
+        // Doesn't work well (refresh rate related?)
+        // NodeEditorMouseControls(ref nodeConfig, pos, size, bottom, right, boxSize);
+        NodeEditorKeyboardControls(ref nodeConfig, pos, size, box_size);
     }
 
-    private static unsafe void DrawAnchorOption(ref ResNodeConfig nodeConfig) {
+
+    private static unsafe void DrawAnchorOption(ref ResNodeConfig node) {
         string[] anchor_names = Enum.GetNames(typeof(PositionAnchor));
-        string current_anchor_label = anchor_names[(int)nodeConfig.anchor];
+        string current_anchor_label = anchor_names[(int)node.anchor];
         Vector2 offset = Vector2.Zero;
         Vector2 size = Vector2.Zero;
         Vector2 vp = ImGui.GetMainViewport().Size;
         RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(nodeConfig.Name);
+        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
 
         if (unit != null) {
             size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
-            offset = GetAnchorOffset(nodeConfig.anchor, size);
+            offset = GetAnchorOffset(node.anchor, size);
         }
 
         if (ImGui.BeginCombo("Position Anchor", current_anchor_label)) {
             for (int index = 0; index < anchor_names.Length; index++) {
-                bool is_selected = (nodeConfig.anchor == (PositionAnchor)index);
+                bool selected = (node.anchor == (PositionAnchor)index);
 
                 // Add each enum value as a selectable item in the dropdown
-                if (ImGui.Selectable(anchor_names[index], is_selected)) {
-                    nodeConfig.anchor = (PositionAnchor)index;
+                if (ImGui.Selectable(anchor_names[index], selected)) {
+                    node.anchor = (PositionAnchor)index;
 
                     if (unit != null) {
-                        offset -= GetAnchorOffset(nodeConfig.anchor, size);
-                        nodeConfig.PosX -= offset.X;
-                        nodeConfig.PosY -= offset.Y;
-                        nodeConfig.PosPercentX = nodeConfig.PosX / vp.X;
-                        nodeConfig.PosPercentY = nodeConfig.PosY / vp.Y;
+                        offset -= GetAnchorOffset(node.anchor, size);
+                        node.PosX -= offset.X;
+                        node.PosY -= offset.Y;
+                        node.PosPercentX = node.PosX / vp.X;
+                        node.PosPercentY = node.PosY / vp.Y;
                     }
                 }
 
                 // Set the currently selected item as highlighted
-                if (is_selected) {
+                if (selected) {
                     ImGui.SetItemDefaultFocus();
                 }
             }
@@ -262,9 +264,9 @@ internal class AddonManager
         }
     }
 
-    private static unsafe void NodeEditorMouseControls(ref ResNodeConfig nodeConfig, Vector2 tl_pos, Vector2 size, Vector2 bottom, Vector2 right, Vector2 box_size) {
+    private static unsafe void NodeEditorMouseControls(ref ResNodeConfig node, Vector2 tl_pos, Vector2 size, Vector2 bottom, Vector2 right, Vector2 box_size) {
         RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(nodeConfig.Name);
+        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
         Vector2 mpos = ImGui.GetMousePos();
 
         if (RaptureAtkUnitManagerHelper.GetPointIntersectsNode(unit->RootNode, mpos)) {
@@ -276,12 +278,12 @@ internal class AddonManager
             float ratio_y = vp.Y / (float)Globals.Config.BaseResolutionY;
             bool down = ImGui.IsMouseDown(ImGuiMouseButton.Left);
 
-            if (nodeConfig.UsePercentagePos) {
+            if (node.UsePercentagePos) {
                 mdelta_pos.X = mdelta.X / vp.X;
                 mdelta_pos.Y = mdelta.Y / vp.Y;
             }
 
-            if (nodeConfig.UsePercentageScale) {
+            if (node.UsePercentageScale) {
                 mdelta_scale.X *= ratio_x;
                 mdelta_scale.Y *= ratio_y;
             }
@@ -289,88 +291,88 @@ internal class AddonManager
             mdelta_scale *= 0.01f;
 
             if (down) {
-                Vector2 newsize;
+                Vector2 new_size;
 
                 if (RaptureAtkUnitManagerHelper.GetPointIntersectsRect(mpos, bottom, box_size)) {
-                    nodeConfig.ScaleY += mdelta_scale.Y;
+                    node.ScaleY += mdelta_scale.Y;
 
-                    UpdateAddon(ref nodeConfig);
-                    newsize = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
+                    UpdateAddon(ref node);
+                    new_size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
 
-                    nodeConfig.PosY += mdelta.Y * 0.5f;
-                    nodeConfig.PosPercentY = nodeConfig.PosY / vp.Y;
+                    node.PosY += mdelta.Y * 0.5f;
+                    node.PosPercentY = node.PosY / vp.Y;
                 }
                 else if (RaptureAtkUnitManagerHelper.GetPointIntersectsRect(mpos, right, box_size)) {
-                    nodeConfig.ScaleX += mdelta_scale.X;
+                    node.ScaleX += mdelta_scale.X;
 
-                    UpdateAddon(ref nodeConfig);
-                    newsize = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
+                    UpdateAddon(ref node);
+                    new_size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
 
-                    nodeConfig.PosX += mdelta.X * 0.5f;
-                    nodeConfig.PosPercentX = nodeConfig.PosX / vp.X;
-
+                    node.PosX += mdelta.X * 0.5f;
+                    node.PosPercentX = node.PosX / vp.X;
                 }
                 else if (RaptureAtkUnitManagerHelper.GetPointIntersectsRect(mpos, tl_pos, size)) {
-                    if (nodeConfig.UsePercentagePos) {
-                        nodeConfig.PosPercentX += mdelta_pos.X;
-                        nodeConfig.PosPercentY += mdelta_pos.Y;
+                    if (node.UsePercentagePos) {
+                        node.PosPercentX += mdelta_pos.X;
+                        node.PosPercentY += mdelta_pos.Y;
                     }
                     else {
-                        nodeConfig.PosX += mdelta_pos.X;
-                        nodeConfig.PosY += mdelta_pos.Y;
+                        node.PosX += mdelta_pos.X;
+                        node.PosY += mdelta_pos.Y;
                     }
                 }
             }
         }
     }
 
-    private static unsafe void NodeEditorKeyboardControls(ref ResNodeConfig nodeConfig, Vector2 tl_pos, Vector2 size, Vector2 box_size) {
+    private static unsafe void NodeEditorKeyboardControls(ref ResNodeConfig node, Vector2 tl_pos, Vector2 size, Vector2 box_size) {
         RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(nodeConfig.Name);
+        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
         Vector2 vp = ImGui.GetMainViewport().Size;
-        Vector2 deltasize;
         float v = 0.0f;
         float h = 0.0f;
         bool scale = Globals.KeyState[VirtualKey.SHIFT];
 
         v -= Globals.KeyState[VirtualKey.UP] ? 1.0f : 0.0f;
         h += Globals.KeyState[VirtualKey.RIGHT] ? 1.0f : 0.0f;
-        v -= Globals.KeyState[VirtualKey.DOWN] ? -1.0f : 0.0f;
-        h += Globals.KeyState[VirtualKey.LEFT] ? -1.0f : 0.0f;
+        v += Globals.KeyState[VirtualKey.DOWN] ? 1.0f : 0.0f;
+        h -= Globals.KeyState[VirtualKey.LEFT] ? 1.0f : 0.0f;
 
         if (v != 0 || h != 0) {
             if (scale) {
-                nodeConfig.ScaleX += h * 0.01f;
-                nodeConfig.ScaleY += v * 0.01f;
+                Vector2 delta_size;
 
-                UpdateAddon(ref nodeConfig);
-                deltasize = (RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode) - size) * 0.5f;
+                node.ScaleX += h * 0.01f;
+                node.ScaleY += v * 0.01f;
 
-                nodeConfig.PosX -= deltasize.X;
-                nodeConfig.PosY -= deltasize.Y;
-                nodeConfig.PosPercentX = nodeConfig.PosX / vp.X;
-                nodeConfig.PosPercentY = nodeConfig.PosY / vp.Y;
+                UpdateAddon(ref node);
+                delta_size = (RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode) - size) * 0.5f;
+
+                node.PosX -= delta_size.X;
+                node.PosY -= delta_size.Y;
+                node.PosPercentX = node.PosX / vp.X;
+                node.PosPercentY = node.PosY / vp.Y;
             }
             else {
-                nodeConfig.PosX += h;
-                nodeConfig.PosY += v;
-                nodeConfig.PosPercentX = nodeConfig.PosX / vp.X;
-                nodeConfig.PosPercentY = nodeConfig.PosY / vp.Y;
+                node.PosX += h;
+                node.PosY += v;
+                node.PosPercentX = node.PosX / vp.X;
+                node.PosPercentY = node.PosY / vp.Y;
             }
         }
     }
 
-    private static unsafe Vector2 GetTLPos(ref ResNodeConfig nodeConfig) {
+    private static unsafe Vector2 GetTLPos(ref ResNodeConfig node) {
         RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(nodeConfig.Name);
+        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
 
         if (unit != null) {
             Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
-            Vector2 offset = GetAnchorOffset(nodeConfig.anchor, size);
-            return new Vector2(nodeConfig.PosX - offset.X, nodeConfig.PosY - offset.Y);
+            Vector2 offset = GetAnchorOffset(node.anchor, size);
+            return new Vector2(node.PosX - offset.X, node.PosY - offset.Y);
         }
 
-        return new Vector2(nodeConfig.PosX, nodeConfig.PosY);
+        return new Vector2(node.PosX, node.PosY);
     }
 
     private static Vector2 GetAnchorOffset(PositionAnchor anchor, Vector2 size) {
@@ -379,19 +381,14 @@ internal class AddonManager
 
         switch (anchor) {
             case PositionAnchor.TOP_LEFT:
-                x = 0;
-                y = 0;
                 break;
             case PositionAnchor.TOP_CENTER:
                 x = size.X / 2;
-                y = 0;
                 break;
             case PositionAnchor.TOP_RIGHT:
                 x = size.X;
-                y = 0;
                 break;
             case PositionAnchor.CENTER_LEFT:
-                x = 0;
                 y = size.Y / 2;
                 break;
             case PositionAnchor.CENTER_CENTER:
@@ -403,7 +400,6 @@ internal class AddonManager
                 y = size.Y / 2;
                 break;
             case PositionAnchor.BOTTOM_LEFT:
-                x = 0;
                 y = size.Y;
                 break;
             case PositionAnchor.BOTTOM_CENTER:
@@ -419,53 +415,41 @@ internal class AddonManager
         return new Vector2(x, y);
     }
 
-    private static unsafe void DrawScaleOption(ref ResNodeConfig nodeConfig, float WIDTH)
-    {
+    private static unsafe void DrawScaleOption(ref ResNodeConfig node, float WIDTH) {
         RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(nodeConfig.Name);
-        Vector2 size = Vector2.Zero;
-
-        if (unit != null) {
-            size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
-        }
+        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
+        Vector2 size = unit != null ? RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode) : Vector2.Zero;
 
         ImGui.SetNextItemWidth(WIDTH);
-        ImGui.InputFloat("Scale X##RESIZABLEHUD_INPUT_SCALEX", ref nodeConfig.ScaleX);
+        ImGui.InputFloat("Scale X##RESIZABLEHUD_INPUT_SCALEX", ref node.ScaleX);
         ImGui.SameLine();
         ImGui.SetNextItemWidth(WIDTH);
-        ImGui.InputFloat("Scale Y##RESIZABLEHUD_INPUT_SCALEY", ref nodeConfig.ScaleY);
+        ImGui.InputFloat("Scale Y##RESIZABLEHUD_INPUT_SCALEY", ref node.ScaleY);
         ImGui.SameLine();
-        if (size != Vector2.Zero) {
-            ImGui.TextDisabled($"({size.X}x{size.Y}) px");
-        }
-        else {
-            ImGui.TextDisabled("??x?? px");
-        }
+
+        ImGui.TextDisabled(size != Vector2.Zero ? $"({size.X}x{size.Y}) px" : "??x?? px");
     }
 
-    private static unsafe void DrawPosOption(ref ResNodeConfig nodeConfig, float WIDTH)
-    {
+    private static unsafe void DrawPosOption(ref ResNodeConfig node, float WIDTH) {
         Vector2 vp = ImGui.GetMainViewport().Size;
 
-        if (nodeConfig.UsePercentagePos == false)
-        {
-            ImGui.SetNextItemWidth(WIDTH);
-            if (ImGui.InputFloat("Pos X##RESIZABLEHUD_INPUT_POSX", ref nodeConfig.PosX)) {
-                nodeConfig.PosPercentX = nodeConfig.PosX / vp.X;
+        ImGui.SetNextItemWidth(WIDTH);
+
+        if (!node.UsePercentagePos) {
+            if (ImGui.InputFloat("Pos X##RESIZABLEHUD_INPUT_POSX", ref node.PosX)) {
+                node.PosPercentX = node.PosX / vp.X;
             }
             ImGui.SameLine();
             ImGui.SetNextItemWidth(WIDTH);
-            if (ImGui.InputFloat("Pos Y##RESIZABLEHUD_INPUT_POSY", ref nodeConfig.PosY)) {
-                nodeConfig.PosPercentY = nodeConfig.PosY / vp.Y;
+            if (ImGui.InputFloat("Pos Y##RESIZABLEHUD_INPUT_POSY", ref node.PosY)) {
+                node.PosPercentY = node.PosY / vp.Y;
             }
         }
-        else
-        {
-            ImGui.SetNextItemWidth(WIDTH);
-            ImGui.InputFloat("Pos X##RESIZABLEHUD_INPUT_POSX%", ref nodeConfig.PosPercentX);
+        else {
+            ImGui.InputFloat("Pos X##RESIZABLEHUD_INPUT_POSX%", ref node.PosPercentX);
             ImGui.SameLine();
             ImGui.SetNextItemWidth(WIDTH);
-            ImGui.InputFloat("Pos Y##RESIZABLEHUD_INPUT_POSY%", ref nodeConfig.PosPercentY);
+            ImGui.InputFloat("Pos Y##RESIZABLEHUD_INPUT_POSY%", ref node.PosPercentY);
         }
     }
 }

@@ -18,50 +18,37 @@ internal class ConfigWindow : Window, IDisposable
     private int PressSafetyFrames = 0;
 
     public ConfigWindow() : base(ConfigWindowName) { }
-    
+
     private unsafe List<IntPtr> MouseCollision() {
         RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
-        AtkUnitList* unitManagers = &manager->AtkUnitManager.DepthLayerOneList;
-        AtkUnitBase* unit = null;
+        AtkUnitList* unit_managers = &manager->AtkUnitManager.DepthLayerOneList;
         List<IntPtr> ret = new List<IntPtr>();
 
         for (int index = 0; index < RaptureAtkUnitManagerHelper.UnitListCount; index++) {
-            AtkUnitList* unitManager = &unitManagers[index];
-            AtkUnitBase** unitBaseArray = &unitManager->AtkUnitEntries;
-
             if (Globals.Config.OnlyPeekInLayer != RaptureAtkUnitManagerHelper.UnitListEntry.Count && index != (int)Globals.Config.OnlyPeekInLayer) {
                 continue;
             }
 
-            for (int qndex = 0; qndex < unitManager->Count; qndex++) {
-                AtkUnitBase* unitBase = unitBaseArray[qndex];
-                string name = Marshal.PtrToStringAnsi(new IntPtr(unitBase->Name));
+            AtkUnitList* unit_manager = &unit_managers[index];
+            AtkUnitBase** unit_base_array = &unit_manager->AtkUnitEntries;
 
-                if (Globals.Config.OnlyPeekVisible && unitBase->IsVisible == false) {
+            for (int qndex = 0; qndex < unit_manager->Count; qndex++) {
+                AtkUnitBase* unit_base = unit_base_array[qndex];
+
+                if (Globals.Config.OnlyPeekVisible && unit_base->IsVisible == false) {
                     continue;
                 }
 
-                if (unitBase->RootNode != null) {
-                    if (RaptureAtkUnitManagerHelper.DrawMouseIntersection(unitBase->RootNode, name)) {
-                        ret.Add((IntPtr)unitBase);
+                if (unit_base->RootNode != null) {
+                    string name = Marshal.PtrToStringAnsi(new IntPtr(unit_base->Name));
+                    if (RaptureAtkUnitManagerHelper.DrawMouseIntersection(unit_base->RootNode, name)) {
+                        ret.Add((IntPtr)unit_base);
                     }
                 }
             }
         }
 
         return ret;
-    }
-
-    private void DrawTail()
-    {
-        ImGui.Separator();
-        if (ImGui.Button("Save"))
-        {
-            if (Globals.Config != null)
-            {
-                Globals.Config.Save();
-            }
-        }
     }
 
     public unsafe void DrawAddonInspector() {
@@ -95,6 +82,7 @@ internal class ConfigWindow : Window, IDisposable
             if (ImGui.IsMouseDown(ImGuiMouseButton.Right) && PressSafetyFrames == 0) {
                 ImGui.CloseCurrentPopup();
             }
+
             if (PopupCollisions != null) {
                 for (int index = 0; index < PopupCollisions.Count; index++) {
                     AtkUnitBase* unit = (AtkUnitBase*)PopupCollisions[index];
@@ -113,7 +101,6 @@ internal class ConfigWindow : Window, IDisposable
 
     public override unsafe void Draw()
     {
-        Vector2 vp = ImGui.GetMainViewport().Size;
         ImGui.InputInt("Base Resolution X", ref Globals.Config.BaseResolutionX);
         ImGuiStuff.DrawTooltip("Sets the width of the base resolution. The base resolution is used for scaling the UI scale parameters");
 
@@ -121,10 +108,16 @@ internal class ConfigWindow : Window, IDisposable
         ImGuiStuff.DrawTooltip("Sets the height of the base resolution. The base resolution is used for scaling the UI scale parameters");
 
         if (ImGui.Button("Set from Viewport")) {
+            Vector2 vp = ImGui.GetMainViewport().Size;
             Globals.Config.BaseResolutionX = (int)vp.X;
             Globals.Config.BaseResolutionY = (int)vp.Y;
         }
         ImGuiStuff.DrawTooltip("Sets the base resolution to your current resolution. The base resolution is used for scaling the UI scale parameters");
+
+        if (ImGui.Button("Save") && Globals.Config != null) {
+            Globals.Config.Save();
+        }
+        ImGuiStuff.DrawTooltip("Save config");
 
         ImGuiStuff.DrawCheckboxTooltip("Draw Addon Inspector", ref Globals.Config.DrawAddonInspector, "When enabled, you will see an overlay of addons (UI elements). Pressing Right Mouse will bring up a context menu with the addons that are under your mouse. Clicking on one of these will add it to the list");
         if (Globals.Config.DrawAddonInspector) {
@@ -138,13 +131,7 @@ internal class ConfigWindow : Window, IDisposable
 
         ImGui.Separator();
         ImGui.Text("Units");
-        if (Globals.Config.nodeConfigs == null)
-        {
-            DrawTail();
-            return;
-        }
         AddonManager.DrawAddonNodes();
-        DrawTail();
     }
 
     public void Dispose() { }
