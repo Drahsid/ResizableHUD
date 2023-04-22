@@ -56,8 +56,11 @@ internal class AddonManager
             ScaleX = scale.X,
             ScaleY = scale.Y,
             UsePercentagePos = false,
-            UsePercentageScale = false
-        };
+            UsePercentageScale = false,
+            Attachment = "",
+            Anchor = PositionAnchor.TOP_LEFT,
+            AttachmentAnchor = PositionAnchor.TOP_LEFT
+    };
 
         config.Add(cfg);
         config.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
