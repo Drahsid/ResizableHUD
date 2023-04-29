@@ -181,6 +181,31 @@ internal class AddonManager
         LastMousePos = ImGui.GetMousePos();
     }
 
+    private static string FindClosestMatch(string input) {
+        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
+        string closestMatch = "";
+        int minDifference = int.MaxValue;
+
+        if (input == "") {
+            return closestMatch;
+        }
+
+        foreach (ResNodeConfig node in config) {
+            string nodeName = node.Name;
+
+            if (nodeName.StartsWith(input, StringComparison.OrdinalIgnoreCase)) {
+                int difference = nodeName.Length - input.Length;
+
+                if (difference < minDifference) {
+                    minDifference = difference;
+                    closestMatch = nodeName;
+                }
+            }
+        }
+
+        return closestMatch;
+    }
+
     private static unsafe void DrawNodePreview(ref ResNodeConfig node) {
         RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
         AtkUnitBase* unit = manager->GetAddonByName(node.Name);
@@ -201,6 +226,9 @@ internal class AddonManager
 
         if (node.Attachment != "") {
             AtkUnitBase* parent = manager->GetAddonByName(node.Attachment);
+            if (parent == null) {
+                return;
+            }
             Vector2 ppos = RaptureAtkUnitManagerHelper.GetNodePosition(parent->RootNode);
             Vector2 psize = RaptureAtkUnitManagerHelper.GetNodeScaledSize(parent->RootNode);
             Vector2 poffset = GetAnchorOffset(node.AttachmentAnchor, psize);
@@ -284,8 +312,36 @@ internal class AddonManager
             ImGuiStuff.DrawTooltip("Point on this ui element that position is relative to");
         }
 
-        ImGui.InputText("Attachment", ref node.Attachment, 64);
-        ImGuiStuff.DrawTooltip("Name of ui element to attach to, leave empty for none");
+        if (ImGui.InputText("Attachment", ref node.AttachmentRef, 64, ImGuiInputTextFlags.EnterReturnsTrue)) {
+            node.Attachment = node.AttachmentRef;
+        }
+        ImGuiStuff.DrawTooltip("Name of ui element to attach to, leave empty for none. You can press tab to autocomplete. Note that the auto completion only searches for addons that you have added");
+
+        float startX = ImGui.CalcTextSize(node.AttachmentRef).X;
+        string autoCompleteResult = FindClosestMatch(node.AttachmentRef);
+        if (!string.IsNullOrEmpty(autoCompleteResult)) {
+            Vector2 currentPos = ImGui.GetCursorScreenPos();
+
+            // Set the cursor position on top of the InputText
+            ImGui.SetCursorScreenPos(new Vector2(currentPos.X + startX + 4, currentPos.Y - ImGui.GetFrameHeightWithSpacing() + 3));
+
+            // Set text color to match InputText
+            ImGui.PushStyleColor(ImGuiCol.Text, ImGuiStuff.ColorToUint(ImGui.GetStyleColorVec4(ImGuiCol.TextDisabled)));
+            ImGui.TextUnformatted(autoCompleteResult.Substring(node.AttachmentRef.Length));
+            ImGui.PopStyleColor();
+
+            if (ImGui.IsKeyPressed(ImGuiKey.Tab)) {
+                node.Attachment = autoCompleteResult;
+                node.AttachmentRef = autoCompleteResult;
+            }
+
+            // needed to fix spacing inconsistencies?
+            currentPos = ImGui.GetCursorScreenPos();
+            ImGui.SetCursorScreenPos(new Vector2(currentPos.X, currentPos.Y - 1));
+
+            ImGui.Spacing();
+        }
+
 
         if (node.Attachment != "") {
             if (ImGui.BeginCombo("Attachment Anchor", current_attach_anchor_label)) {

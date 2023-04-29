@@ -29,7 +29,8 @@ public class ResNodeConfig {
     public bool DoNotPosition = false;
     public bool DoNotScale = false;
     public bool Editing = false;
-    public string Attachment;
+    public string Attachment = "";
+    public string AttachmentRef = "";
     public PositionAnchor Anchor = PositionAnchor.TOP_LEFT;
     public PositionAnchor AttachmentAnchor = PositionAnchor.TOP_LEFT;
 }
@@ -88,6 +89,10 @@ public class Configuration : IPluginConfiguration {
 
                     if (config.Attachment == null) {
                         config.Attachment = "";
+                    }
+
+                    if (config.AttachmentRef == null) {
+                        config.AttachmentRef = "";
                     }
 
                     if (config.UsePercentage != null) {
