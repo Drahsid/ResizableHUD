@@ -9,7 +9,7 @@ using System;
 using System.Diagnostics;
 using System.Numerics;
 
-[assembly: System.Reflection.AssemblyVersion("1.1.4")]
+[assembly: System.Reflection.AssemblyVersion("1.1.5")]
 
 namespace ResizableHUD;
 
