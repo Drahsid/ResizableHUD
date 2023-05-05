@@ -47,7 +47,8 @@ internal class AddonManager
         ResNodeConfig cfg = new ResNodeConfig {
             Name = name,
             DoNotPosition = false,
-            DoNotScale = false,
+            DoNotScale = true,
+            DoNotOpacity = false,
             PosX = pos.X,
             PosY = pos.Y,
             PosPercentX = pos.X / vp.X,
@@ -59,7 +60,8 @@ internal class AddonManager
             UsePercentageScale = false,
             Attachment = "",
             Anchor = PositionAnchor.TOP_LEFT,
-            AttachmentAnchor = PositionAnchor.TOP_LEFT
+            AttachmentAnchor = PositionAnchor.TOP_LEFT,
+            Opacity = unit->Alpha
     };
 
         config.Add(cfg);
@@ -88,6 +90,10 @@ internal class AddonManager
         if (node.UsePercentageScale) {
             scaleX *= ratioX;
             scaleY *= ratioY;
+        }
+
+        if (!node.DoNotOpacity) {
+            unit->Alpha = (byte)node.Opacity;
         }
 
         if (!node.DoNotScale) {
@@ -147,6 +153,8 @@ internal class AddonManager
                 ImGui.SameLine();
                 ImGuiStuff.DrawCheckboxTooltip("No scale", ref node.DoNotScale, "Disables scaling for this element");
                 ImGuiStuff.DrawCheckboxTooltip("Force visibility", ref node.ForceVisible, "Forces the element to be visible.");
+                ImGuiStuff.DrawCheckboxTooltip("No Opacity", ref node.DoNotOpacity, "Disables opacity for this element");
+                ImGui.SliderInt("Opacity", ref node.Opacity, 0, 255);
 
                 ImGui.Separator();
                 DrawAnchorOption(ref node);

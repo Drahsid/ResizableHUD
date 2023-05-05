@@ -22,12 +22,14 @@ public class ResNodeConfig {
     public float PosY = 0.0f;
     public float PosPercentX = 0.0f;
     public float PosPercentY = 0.0f;
+    public int Opacity = 255;
     [Obsolete] public bool? UsePercentage = false;
     public bool UsePercentagePos = false;
     public bool UsePercentageScale = false;
     public bool ForceVisible = false;
     public bool DoNotPosition = false;
     public bool DoNotScale = false;
+    public bool DoNotOpacity = true;
     public bool Editing = false;
     public string Attachment = "";
     public string AttachmentRef = "";
@@ -100,6 +102,11 @@ public class Configuration : IPluginConfiguration {
                             config.UsePercentagePos = (bool)config.UsePercentage;
                             config.UsePercentage = null;
                         }
+                    }
+
+                    if (config.DoNotOpacity == null) {
+                        config.DoNotOpacity = true;
+                        config.Opacity = 255;
                     }
                 }
             }
