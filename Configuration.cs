@@ -97,6 +97,8 @@ public class Configuration : IPluginConfiguration {
                         config.AttachmentRef = "";
                     }
 
+                    config.AttachmentRef = config.Attachment;
+
                     if (config.UsePercentage != null) {
                         if ((bool)config.UsePercentage) {
                             config.UsePercentagePos = (bool)config.UsePercentage;

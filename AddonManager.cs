@@ -14,6 +14,8 @@ using static ResizableHUD.ResNodeConfig;
 using System.Collections.Generic;
 using System.Linq;
 
+// TODO: refactor this file
+
 namespace ResizableHUD;
 
 internal class AddonManager
@@ -31,12 +33,7 @@ internal class AddonManager
         return config.Any(node => node.Name == name);
     }
 
-    public static unsafe void AddToConfig(AtkUnitBase* unit) {
-        if (CheckIfInConfig(unit)) {
-            return;
-        }
-
-        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
+    public static unsafe ResNodeConfig GetAddonConfig(AtkUnitBase* unit, PositionAnchor anchor = PositionAnchor.TOP_LEFT) {
         AtkResNode* res = unit->RootNode;
         Vector2 pos = RaptureAtkUnitManagerHelper.GetNodePosition(res);
         Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(res);
@@ -44,11 +41,13 @@ internal class AddonManager
         Vector2 vp = ImGui.GetMainViewport().Size;
         string name = Marshal.PtrToStringAnsi(new IntPtr(unit->Name));
 
-        ResNodeConfig cfg = new ResNodeConfig {
+        pos += GetAnchorOffset(anchor, size);
+
+        return new ResNodeConfig {
             Name = name,
             DoNotPosition = false,
-            DoNotScale = true,
-            DoNotOpacity = false,
+            DoNotScale = false,
+            DoNotOpacity = true,
             PosX = pos.X,
             PosY = pos.Y,
             PosPercentX = pos.X / vp.X,
@@ -59,12 +58,19 @@ internal class AddonManager
             UsePercentagePos = false,
             UsePercentageScale = false,
             Attachment = "",
-            Anchor = PositionAnchor.TOP_LEFT,
+            Anchor = anchor,
             AttachmentAnchor = PositionAnchor.TOP_LEFT,
             Opacity = unit->Alpha
-    };
+        };
+    }
 
-        config.Add(cfg);
+    public static unsafe void AddToConfig(AtkUnitBase* unit) {
+        if (CheckIfInConfig(unit)) {
+            return;
+        }
+
+        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
+        config.Add(GetAddonConfig(unit));
         config.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -177,6 +183,14 @@ internal class AddonManager
                     break;
                 }
 
+                ImGui.SameLine();
+                if (ImGui.Button("Refresh Values")) {
+                    RefreshValues(ref node);
+                }
+                if (ImGui.IsItemHovered()) {
+                    ImGui.SetTooltip("Update the values that are currently not being used to the values on screen. For example, if 'No position' is toggled on, it will update the position.");
+                }
+
                 ImGui.Separator();
                 ImGui.TreePop();
             }
@@ -212,6 +226,49 @@ internal class AddonManager
         }
 
         return closestMatch;
+    }
+
+    private static unsafe void RefreshValues(ref ResNodeConfig node) {
+        RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
+
+        if (unit == null) {
+            return;
+        }
+
+        var cfg = GetAddonConfig(unit, node.Anchor);
+        if (node.DoNotScale) {
+            node.ScaleX = cfg.ScaleX;
+            node.ScaleY = cfg.ScaleY;
+        }
+
+        if (node.DoNotPosition) {
+            node.PosX = cfg.PosX;
+            node.PosY = cfg.PosY;
+            node.PosPercentX = cfg.PosPercentX;
+            node.PosPercentY = cfg.PosPercentY;
+        }
+
+        if (node.DoNotOpacity) {
+            node.Opacity = cfg.Opacity;
+        }
+        
+        if (node.Attachment != "") {
+            AtkUnitBase* parent = manager->GetAddonByName(node.Attachment);
+            if (parent == null) {
+                return;
+            }
+            Vector2 pos = GetTLPos(ref node);
+            Vector2 ppos = RaptureAtkUnitManagerHelper.GetNodePosition(parent->RootNode);
+            Vector2 psize = RaptureAtkUnitManagerHelper.GetNodeScaledSize(parent->RootNode);
+            Vector2 vp = ImGui.GetMainViewport().Size;
+            ppos += GetAnchorOffset(node.AttachmentAnchor, psize);
+
+            node.PosX = pos.X + ppos.X;
+            node.PosY = pos.Y + ppos.Y;
+            node.PosPercentX = node.PosX / vp.X;
+            node.PosPercentY = node.PosY / vp.Y;
+        }
     }
 
     private static unsafe void DrawNodePreview(ref ResNodeConfig node) {
