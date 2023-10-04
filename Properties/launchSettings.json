@@ -1,9 +1,0 @@
-{
-  "profiles": {
-    "ResizableHUD": {
-      "commandName": "Project",
-      "hotReloadEnabled": false,
-      "nativeDebugging": true
-    }
-  }
-}

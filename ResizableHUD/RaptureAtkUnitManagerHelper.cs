@@ -1,15 +1,11 @@
-﻿using Dalamud.Interface;
-using Dalamud.Logging;
+﻿using Dalamud.Interface.Utility;
+using DrahsidLib;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ResizableHUD; 
+
 public static class RaptureAtkUnitManagerHelper {
     const uint NodeVisibleColor = 0xFF00FF00;
     const uint NodeInvisibleColor = 0xFF0000FF;
@@ -73,7 +69,7 @@ public static class RaptureAtkUnitManagerHelper {
 
     public static unsafe Vector2 GetNodeScale(AtkResNode* node) {
         if (node == null) {
-            PluginLog.Warning("Node is null");
+            Service.Logger.Warning("Node is null");
             return new Vector2(1, 1);
         }
 
@@ -87,7 +83,7 @@ public static class RaptureAtkUnitManagerHelper {
 
     public static unsafe Vector2 GetNodeScaledSize(AtkResNode* node) {
         if (node == null) {
-            PluginLog.Warning("Node is null");
+            Service.Logger.Warning("Node is null");
             return new Vector2(1, 1);
         }
 
@@ -102,7 +98,7 @@ public static class RaptureAtkUnitManagerHelper {
         }
 
         while (node != null) {
-            if ((node->Flags & (short)NodeFlags.Visible) != (short)NodeFlags.Visible) {
+            if ((node->NodeFlags & NodeFlags.Visible) != NodeFlags.Visible) {
                 return false;
             }
             node = node->ParentNode;

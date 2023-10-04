@@ -1,18 +1,16 @@
-﻿using Dalamud.Interface;
-using Dalamud.Logging;
+﻿using DrahsidLib;
 using Dalamud.Game.ClientState.Keys;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 using System;
-using System.Drawing;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using System.Xml.Linq;
-using static ResizableHUD.ResNodeConfig;
 using System.Collections.Generic;
 using System.Linq;
+using Dalamud.Interface.Utility;
+
+using static ResizableHUD.ResNodeConfig;
 
 // TODO: refactor this file
 
@@ -154,12 +152,12 @@ internal class AddonManager
                     DrawNodePreview(ref node);
                 }
 
-                ImGuiStuff.DrawCheckboxTooltip("Edit", ref node.Editing, "Allows editing the transform with the arrow keys. Hold Shift to scale");
-                ImGuiStuff.DrawCheckboxTooltip("No position", ref node.DoNotPosition, "Disables positioning for this element");
+                WindowDrawHelpers.DrawCheckboxTooltip("Edit", ref node.Editing, "Allows editing the transform with the arrow keys. Hold Shift to scale");
+                WindowDrawHelpers.DrawCheckboxTooltip("No position", ref node.DoNotPosition, "Disables positioning for this element");
                 ImGui.SameLine();
-                ImGuiStuff.DrawCheckboxTooltip("No scale", ref node.DoNotScale, "Disables scaling for this element");
-                ImGuiStuff.DrawCheckboxTooltip("Force visibility", ref node.ForceVisible, "Forces the element to be visible.");
-                ImGuiStuff.DrawCheckboxTooltip("No Opacity", ref node.DoNotOpacity, "Disables opacity for this element");
+                WindowDrawHelpers.DrawCheckboxTooltip("No scale", ref node.DoNotScale, "Disables scaling for this element");
+                WindowDrawHelpers.DrawCheckboxTooltip("Force visibility", ref node.ForceVisible, "Forces the element to be visible.");
+                WindowDrawHelpers.DrawCheckboxTooltip("No Opacity", ref node.DoNotOpacity, "Disables opacity for this element");
                 ImGui.SliderInt("Opacity", ref node.Opacity, 0, 255);
 
                 ImGui.Separator();
@@ -168,13 +166,13 @@ internal class AddonManager
                 if (!node.DoNotPosition) {
                     ImGui.Separator();
                     DrawPosOption(ref node, width);
-                    ImGuiStuff.DrawCheckboxTooltip("Use relative##RESIZABLEHUD_DROPDOWN_POS_PERCENT", ref node.UsePercentagePos, "Position value represents a percentage instead of a pixel");
+                    WindowDrawHelpers.DrawCheckboxTooltip("Use relative##RESIZABLEHUD_DROPDOWN_POS_PERCENT", ref node.UsePercentagePos, "Position value represents a percentage instead of a pixel");
                 }
 
                 if (!node.DoNotScale) {
                     ImGui.Separator();
                     DrawScaleOption(ref node, width);
-                    ImGuiStuff.DrawCheckboxTooltip("Use relative##RESIZABLEHUD_DROPDOWN_SCL_PERCENT", ref node.UsePercentageScale, "Scaling is scaled to base resolution");
+                    WindowDrawHelpers.DrawCheckboxTooltip("Use relative##RESIZABLEHUD_DROPDOWN_SCL_PERCENT", ref node.UsePercentageScale, "Scaling is scaled to base resolution");
                 }
 
                 ImGui.Separator();
@@ -374,13 +372,13 @@ internal class AddonManager
 
                 ImGui.EndCombo();
             }
-            ImGuiStuff.DrawTooltip("Point on this ui element that position is relative to");
+            WindowDrawHelpers.DrawTooltip("Point on this ui element that position is relative to");
         }
 
         if (ImGui.InputText("Attachment", ref node.AttachmentRef, 64, ImGuiInputTextFlags.EnterReturnsTrue)) {
             node.Attachment = node.AttachmentRef;
         }
-        ImGuiStuff.DrawTooltip("Name of ui element to attach to, leave empty for none. You can press tab to autocomplete. Note that the auto completion only searches for addons that you have added");
+        WindowDrawHelpers.DrawTooltip("Name of ui element to attach to, leave empty for none. You can press tab to autocomplete. Note that the auto completion only searches for addons that you have added");
 
         float startX = ImGui.CalcTextSize(node.AttachmentRef).X;
         string autoCompleteResult = FindClosestMatch(node.AttachmentRef);
@@ -426,7 +424,7 @@ internal class AddonManager
 
                 ImGui.EndCombo();
             }
-            ImGuiStuff.DrawTooltip("Point on attached ui element (if any) to anchor to");
+            WindowDrawHelpers.DrawTooltip("Point on attached ui element (if any) to anchor to");
         }
     }
 
@@ -497,12 +495,12 @@ internal class AddonManager
         Vector2 vp = ImGui.GetMainViewport().Size;
         float v = 0.0f;
         float h = 0.0f;
-        bool scale = Globals.KeyState[VirtualKey.SHIFT];
+        bool scale = Service.KeyState[VirtualKey.SHIFT];
 
-        v -= Globals.KeyState[VirtualKey.UP] ? 1.0f : 0.0f;
-        h += Globals.KeyState[VirtualKey.RIGHT] ? 1.0f : 0.0f;
-        v += Globals.KeyState[VirtualKey.DOWN] ? 1.0f : 0.0f;
-        h -= Globals.KeyState[VirtualKey.LEFT] ? 1.0f : 0.0f;
+        v -= Service.KeyState[VirtualKey.UP] ? 1.0f : 0.0f;
+        h += Service.KeyState[VirtualKey.RIGHT] ? 1.0f : 0.0f;
+        v += Service.KeyState[VirtualKey.DOWN] ? 1.0f : 0.0f;
+        h -= Service.KeyState[VirtualKey.LEFT] ? 1.0f : 0.0f;
 
         if (v != 0 || h != 0) {
             if (scale) {

@@ -1,9 +1,9 @@
 ﻿using Dalamud.Configuration;
-using Dalamud.Plugin;
-using Dalamud.Logging;
 using System;
 using System.Collections.Generic;
 using ImGuiNET;
+using DrahsidLib;
+
 using static ResizableHUD.RaptureAtkUnitManagerHelper;
 
 namespace ResizableHUD;
@@ -47,13 +47,12 @@ public class Configuration : IPluginConfiguration {
     public int BaseResolutionY = -1;
     public bool OnlyPeekVisible = false;
     public bool DrawAddonInspector = false;
+    public bool HideTooltips = false;
     public UnitListEntry OnlyPeekInLayer = UnitListEntry.LoadedUnits;
     #endregion
 
-    private DalamudPluginInterface PluginInterface;
-
     public List<ResNodeConfig>? GetCurrentNodeConfig() {
-        ulong cid = Globals.ClientState.LocalContentId;
+        ulong cid = Service.ClientState.LocalContentId;
         if (CIDNodeConfigMap.ContainsKey(cid)) {
             return CIDNodeConfigMap[cid];
         }
@@ -62,9 +61,8 @@ public class Configuration : IPluginConfiguration {
         return CIDNodeConfigMap[cid];
     }
 
-    public void Initialize(DalamudPluginInterface pluginInterface) {
-        ulong cid = Globals.ClientState.LocalContentId;
-        PluginInterface = pluginInterface;
+    public void Initialize() {
+        ulong cid = Service.ClientState.LocalContentId;
 
         if (nodeConfigs != null) {
             CIDNodeConfigMap.Add(cid, nodeConfigs);
@@ -115,8 +113,7 @@ public class Configuration : IPluginConfiguration {
         }
     }
 
-    public void Save()
-    {
-        PluginInterface.SavePluginConfig(this);
+    public void Save() {
+        Service.Interface.SavePluginConfig(this);
     }
 }

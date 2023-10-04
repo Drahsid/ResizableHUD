@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ResizableHUD", "ResizableHUD.csproj", "{BA5A1B2C-76EC-41C1-BAC5-16B70BA273FC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ResizableHUD", ".\ResizableHUD\ResizableHUD.csproj", "{BA5A1B2C-76EC-41C1-BAC5-16B70BA273FC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
