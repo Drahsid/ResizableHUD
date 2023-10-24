@@ -39,7 +39,6 @@ internal class ConfigWindow : WindowWrapper {
 
                 if (unit_base->RootNode != null) {
                     string name = Marshal.PtrToStringAnsi(new IntPtr(unit_base->Name));
-                    Service.Logger.Info($"[{qndex}]: {name} @ 0x{(uint)unit_base->RootNode:X}");
                     if (RaptureAtkUnitManagerHelper.DrawMouseIntersection(unit_base->RootNode, name)) {
                         ret.Add((IntPtr)unit_base);
                     }
