@@ -5,6 +5,7 @@ using ImGuiNET;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace ResizableHUD;
@@ -29,10 +30,8 @@ internal class ConfigWindow : WindowWrapper {
             }
 
             AtkUnitList* unit_manager = &unit_managers[index];
-            AtkUnitBase** unit_base_array = (AtkUnitBase**)&unit_manager->Entries;
-
             for (int qndex = 0; qndex < unit_manager->Count; qndex++) {
-                AtkUnitBase* unit_base = unit_base_array[qndex];
+                AtkUnitBase* unit_base = *(AtkUnitBase**)Unsafe.AsPointer(ref unit_manager->EntriesSpan[qndex]);
 
                 if (Globals.Config.OnlyPeekVisible && unit_base->IsVisible == false) {
                     continue;
@@ -40,6 +39,7 @@ internal class ConfigWindow : WindowWrapper {
 
                 if (unit_base->RootNode != null) {
                     string name = Marshal.PtrToStringAnsi(new IntPtr(unit_base->Name));
+                    Service.Logger.Info($"[{qndex}]: {name} @ 0x{(uint)unit_base->RootNode:X}");
                     if (RaptureAtkUnitManagerHelper.DrawMouseIntersection(unit_base->RootNode, name)) {
                         ret.Add((IntPtr)unit_base);
                     }
