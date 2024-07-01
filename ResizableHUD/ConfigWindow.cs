@@ -20,7 +20,7 @@ internal class ConfigWindow : WindowWrapper {
     public ConfigWindow() : base(ConfigWindowName, MinSize) { }
 
     private unsafe List<IntPtr> MouseCollision() {
-        RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
         AtkUnitList* unit_managers = &manager->AtkUnitManager.DepthLayerOneList;
         List<IntPtr> ret = new List<IntPtr>();
 
@@ -31,15 +31,14 @@ internal class ConfigWindow : WindowWrapper {
 
             AtkUnitList* unit_manager = &unit_managers[index];
             for (int qndex = 0; qndex < unit_manager->Count; qndex++) {
-                AtkUnitBase* unit_base = *(AtkUnitBase**)Unsafe.AsPointer(ref unit_manager->EntriesSpan[qndex]);
+                AtkUnitBase* unit_base = *(AtkUnitBase**)Unsafe.AsPointer(ref unit_manager->Entries[qndex]);
 
                 if (Globals.Config.OnlyPeekVisible && unit_base->IsVisible == false) {
                     continue;
                 }
 
                 if (unit_base->RootNode != null) {
-                    string name = Marshal.PtrToStringAnsi(new IntPtr(unit_base->Name));
-                    if (RaptureAtkUnitManagerHelper.DrawMouseIntersection(unit_base->RootNode, name)) {
+                    if (RaptureAtkUnitManagerHelper.DrawMouseIntersection(unit_base->RootNode, unit_base->NameString)) {
                         ret.Add((IntPtr)unit_base);
                     }
                 }
@@ -60,8 +59,7 @@ internal class ConfigWindow : WindowWrapper {
         if (popup_open) {
             for (int index = 0; index < PopupCollisions.Count; index++) {
                 AtkUnitBase* unit = (AtkUnitBase*)PopupCollisions[index];
-                string name = Marshal.PtrToStringAnsi(new IntPtr(unit->Name));
-                RaptureAtkUnitManagerHelper.DrawOutline(unit->RootNode, name);
+                RaptureAtkUnitManagerHelper.DrawOutline(unit->RootNode, unit->NameString);
             }
         }
         else {
@@ -84,10 +82,9 @@ internal class ConfigWindow : WindowWrapper {
             if (PopupCollisions != null) {
                 for (int index = 0; index < PopupCollisions.Count; index++) {
                     AtkUnitBase* unit = (AtkUnitBase*)PopupCollisions[index];
-                    string name = Marshal.PtrToStringAnsi(new IntPtr(unit->Name));
 
                     if (!AddonManager.CheckIfInConfig(unit)) {
-                        if (ImGui.Button(name)) {
+                        if (ImGui.Button(unit->NameString)) {
                             AddonManager.AddToConfig(unit);
                         }
                     }

@@ -27,8 +27,7 @@ internal class AddonManager
 
     public static unsafe bool CheckIfInConfig(AtkUnitBase* unit) {
         List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
-        string name = Marshal.PtrToStringAnsi(new IntPtr(unit->Name));
-        return config.Any(node => node.Name == name);
+        return config.Any(node => node.Name == unit->NameString);
     }
 
     public static unsafe ResNodeConfig GetAddonConfig(AtkUnitBase* unit, PositionAnchor anchor = PositionAnchor.TOP_LEFT) {
@@ -37,12 +36,11 @@ internal class AddonManager
         Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(res);
         Vector2 scale = RaptureAtkUnitManagerHelper.GetNodeScale(res);
         Vector2 vp = ImGui.GetMainViewport().Size;
-        string name = Marshal.PtrToStringAnsi(new IntPtr(unit->Name));
 
         pos += GetAnchorOffset(anchor, size);
 
         return new ResNodeConfig {
-            Name = name,
+            Name = unit->NameString,
             DoNotPosition = false,
             DoNotScale = false,
             DoNotOpacity = true,
@@ -73,7 +71,7 @@ internal class AddonManager
     }
 
     public static unsafe void UpdateAddon(ref ResNodeConfig node) {
-        RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
         AtkUnitBase* unit = manager->GetAddonByName(node.Name);
         if (unit == null) {
             return;
@@ -227,7 +225,7 @@ internal class AddonManager
     }
 
     private static unsafe void RefreshValues(ref ResNodeConfig node) {
-        RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
         AtkUnitBase* unit = manager->GetAddonByName(node.Name);
 
         if (unit == null) {
@@ -260,6 +258,9 @@ internal class AddonManager
             Vector2 ppos = RaptureAtkUnitManagerHelper.GetNodePosition(parent->RootNode);
             Vector2 psize = RaptureAtkUnitManagerHelper.GetNodeScaledSize(parent->RootNode);
             Vector2 vp = ImGui.GetMainViewport().Size;
+
+            Service.Logger.Info($"pos: {pos}, ppos: {ppos}, psize: {psize}, vp: {vp}, anchor: {GetAnchorOffset(node.AttachmentAnchor, psize)}");
+
             ppos += GetAnchorOffset(node.AttachmentAnchor, psize);
 
             node.PosX = pos.X + ppos.X;
@@ -270,7 +271,7 @@ internal class AddonManager
     }
 
     private static unsafe void DrawNodePreview(ref ResNodeConfig node) {
-        RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
         AtkUnitBase* unit = manager->GetAddonByName(node.Name);
 
         if (unit == null) {
@@ -302,7 +303,7 @@ internal class AddonManager
     }
 
     private static unsafe void DrawNodeEditor(ref ResNodeConfig nodeConfig) {
-        RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
         AtkUnitBase* unit = manager->GetAddonByName(nodeConfig.Name);
 
         // ImGui.SetNextFrameWantCaptureMouse(true);
@@ -338,7 +339,7 @@ internal class AddonManager
         Vector2 offset = Vector2.Zero;
         Vector2 size = Vector2.Zero;
         Vector2 vp = ImGui.GetMainViewport().Size;
-        RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
         AtkUnitBase* unit = manager->GetAddonByName(node.Name);
 
         if (unit != null) {
@@ -429,7 +430,7 @@ internal class AddonManager
     }
 
     private static unsafe void NodeEditorMouseControls(ref ResNodeConfig node, Vector2 tl_pos, Vector2 size, Vector2 bottom, Vector2 right, Vector2 box_size) {
-        RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
         AtkUnitBase* unit = manager->GetAddonByName(node.Name);
         Vector2 mpos = ImGui.GetMousePos();
 
@@ -490,7 +491,7 @@ internal class AddonManager
     }
 
     private static unsafe void NodeEditorKeyboardControls(ref ResNodeConfig node, Vector2 tl_pos, Vector2 size, Vector2 box_size) {
-        RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
         AtkUnitBase* unit = manager->GetAddonByName(node.Name);
         Vector2 vp = ImGui.GetMainViewport().Size;
         float v = 0.0f;
@@ -527,7 +528,7 @@ internal class AddonManager
     }
 
     private static unsafe Vector2 GetTLPos(ref ResNodeConfig node) {
-        RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
         AtkUnitBase* unit = manager->GetAddonByName(node.Name);
 
         if (unit != null) {
@@ -594,7 +595,7 @@ internal class AddonManager
     }
 
     private static unsafe void DrawScaleOption(ref ResNodeConfig node, float WIDTH) {
-        RaptureAtkUnitManager* manager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
         AtkUnitBase* unit = manager->GetAddonByName(node.Name);
         Vector2 size = unit != null ? RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode) : Vector2.Zero;
 

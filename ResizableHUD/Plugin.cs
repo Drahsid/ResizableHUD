@@ -2,19 +2,18 @@
 using System;
 using Dalamud.Plugin.Services;
 using ImGuiNET;
-using DrahsidLib;
 
 namespace ResizableHUD;
 
 public class Plugin : IDalamudPlugin {
-    private DalamudPluginInterface PluginInterface;
+    private IDalamudPluginInterface PluginInterface;
     private IChatGui Chat { get; init; }
     private IClientState ClientState { get; init; }
     private ICommandManager CommandManager { get; init; }
 
     public string Name => "ResizableHUD";
 
-    public Plugin(DalamudPluginInterface pluginInterface, ICommandManager commandManager, IChatGui chat, IClientState clientState) {
+    public Plugin(IDalamudPluginInterface pluginInterface, ICommandManager commandManager, IChatGui chat, IClientState clientState) {
         PluginInterface = pluginInterface;
         Chat = chat;
         ClientState = clientState;
@@ -46,6 +45,7 @@ public class Plugin : IDalamudPlugin {
         Windows.Initialize();
         PluginInterface.UiBuilder.Draw += OnDraw;
         PluginInterface.UiBuilder.OpenConfigUi += Commands.ToggleConfig;
+        PluginInterface.UiBuilder.OpenMainUi += Commands.ToggleConfig;
     }
 
     private void OnDraw() {
@@ -64,7 +64,7 @@ public class Plugin : IDalamudPlugin {
         PluginInterface.UiBuilder.Draw -= OnDraw;
         Windows.Dispose();
         PluginInterface.UiBuilder.OpenConfigUi -= Commands.ToggleConfig;
-
+        PluginInterface.UiBuilder.OpenMainUi -= Commands.ToggleConfig;
         Commands.Dispose();
     }
 
