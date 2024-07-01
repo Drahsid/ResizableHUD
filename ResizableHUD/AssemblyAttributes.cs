@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 [assembly: System.Reflection.AssemblyProduct("ResizableHUD")]
 [assembly: System.Reflection.AssemblyTitle("ResizableHUD")]
 
-[assembly: System.Reflection.AssemblyVersion("1.2.1")]
+[assembly: System.Reflection.AssemblyVersion("1.3.0")]
 
 #if DEBUG
 [assembly: System.Reflection.AssemblyConfiguration("Debug")]
