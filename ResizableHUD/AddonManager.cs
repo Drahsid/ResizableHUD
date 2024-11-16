@@ -531,7 +531,7 @@ internal class AddonManager
         RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
         AtkUnitBase* unit = manager->GetAddonByName(node.Name);
 
-        if (unit != null) {
+        if (unit != null && unit->IsReady) {
             Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
             Vector2 offset = GetAnchorOffset(node.Anchor, size);
             Vector2 pos = new Vector2(node.PosX - offset.X, node.PosY - offset.Y); // absolute top left
