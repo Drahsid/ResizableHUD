@@ -1,7 +1,7 @@
 ﻿using Dalamud.Interface.Utility;
 using DrahsidLib;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System.Numerics;
 
 namespace ResizableHUD; 

@@ -1,7 +1,7 @@
 ﻿using Dalamud.Configuration;
 using System;
 using System.Collections.Generic;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using DrahsidLib;
 
 using static ResizableHUD.RaptureAtkUnitManagerHelper;

@@ -1,7 +1,7 @@
 ﻿using Dalamud.Plugin;
 using System;
 using Dalamud.Plugin.Services;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace ResizableHUD;
 
