@@ -113,7 +113,7 @@ internal class ConfigWindow : WindowWrapper {
         }
         WindowDrawHelpers.DrawTooltip("Save config");
 
-        WindowDrawHelpers.DrawCheckboxTooltip("Draw Addon Inspector", ref Globals.Config.DrawAddonInspector, "When enabled, you will see an overlay of addons (UI elements). Pressing Right Mouse will bring up a context menu with the addons that are under your mouse. Clicking on one of these will add it to the list");
+        WindowDrawHelpers.DrawCheckboxTooltip("Draw Addon Inspector", ref Globals.Config!.DrawAddonInspector, "When enabled, you will see an overlay of addons (UI elements). Pressing Right Mouse will bring up a context menu with the addons that are under your mouse. Clicking on one of these will add it to the list");
         if (Globals.Config.DrawAddonInspector) {
             WindowDrawHelpers.DrawCheckboxTooltip("Draw Only Visible", ref Globals.Config.OnlyPeekVisible, "When enabled, the addon inspector will only draw addons that are marked as visible");
         }

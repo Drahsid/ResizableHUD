@@ -26,7 +26,7 @@ internal class AddonManager
     private static Vector2 LastMousePos = Vector2.Zero;
 
     public static unsafe bool CheckIfInConfig(AtkUnitBase* unit) {
-        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
+        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig()!;
         return config.Any(node => node.Name == unit->NameString);
     }
 
@@ -65,7 +65,7 @@ internal class AddonManager
             return;
         }
 
-        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
+        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig()!;
         config.Add(GetAddonConfig(unit));
         config.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
     }
@@ -118,7 +118,7 @@ internal class AddonManager
     }
 
     public static void UpdateAddons() {
-        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
+        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig()!;
 
         if (config == null) {
             return;
@@ -131,7 +131,7 @@ internal class AddonManager
     }
 
     public static void DrawAddonNodes() {
-        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
+        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig()!;
 
         if (config == null) {
             return;
@@ -200,7 +200,7 @@ internal class AddonManager
     }
 
     private static string FindClosestMatch(string input) {
-        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
+        List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig()!;
         string closestMatch = "";
         int minDifference = int.MaxValue;
 
