@@ -16,6 +16,8 @@ public class ResNodeConfig {
     };
 
     public string Name = "";
+    public string HostName = "";
+    public int Index = 1;
     public float ScaleX = 1.0f;
     public float ScaleY = 1.0f;
     public float PosX = 0.0f;
@@ -107,6 +109,13 @@ public class Configuration : IPluginConfiguration {
                     if (config.DoNotOpacity == null) {
                         config.DoNotOpacity = true;
                         config.Opacity = 255;
+                    }
+
+                    if (config.HostName == null) {
+                        config.HostName = "";
+                    }
+                    if (config.Index <= 0) {
+                        config.Index = 1;
                     }
                 }
             }

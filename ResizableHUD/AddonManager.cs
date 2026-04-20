@@ -25,9 +25,57 @@ internal class AddonManager
     private const uint NodeParentAnchorColor = 0xFF0000FF;
     private static Vector2 LastMousePos = Vector2.Zero;
 
+    private const int MaxDuplicateProbe = 32;
+
+    public static unsafe string GetHostName(AtkUnitBase* unit) {
+        if (unit == null || unit->HostId == 0) return "";
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
+        AtkUnitBase* host = manager->GetAddonById(unit->HostId);
+        return host != null ? host->NameString : "";
+    }
+
+    public static unsafe (string hostName, int index) ResolveIdentity(AtkUnitBase* unit) {
+        if (unit == null) return ("", 1);
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
+        string name = unit->NameString;
+        string hostName = GetHostName(unit);
+
+        int hits = 0;
+        for (int i = 1; i <= MaxDuplicateProbe; i++) {
+            AtkUnitBase* candidate = manager->GetAddonByName(name, i);
+            if (candidate == null) break;
+            if (GetHostName(candidate) != hostName) continue;
+            hits++;
+            if (candidate == unit) return (hostName, hits);
+        }
+
+        return (hostName, 1);
+    }
+
+    public static unsafe AtkUnitBase* FindUnit(ResNodeConfig node) {
+        if (node == null || string.IsNullOrEmpty(node.Name)) return null;
+        RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
+
+        if (string.IsNullOrEmpty(node.HostName) && node.Index <= 1) {
+            return manager->GetAddonByName(node.Name);
+        }
+
+        int hits = 0;
+        for (int i = 1; i <= MaxDuplicateProbe; i++) {
+            AtkUnitBase* candidate = manager->GetAddonByName(node.Name, i);
+            if (candidate == null) break;
+            if (!string.IsNullOrEmpty(node.HostName) && GetHostName(candidate) != node.HostName) continue;
+            hits++;
+            if (hits >= node.Index) return candidate;
+        }
+        return null;
+    }
+
     public static unsafe bool CheckIfInConfig(AtkUnitBase* unit) {
         List<ResNodeConfig> config = Globals.Config.GetCurrentNodeConfig();
-        return config.Any(node => node.Name == unit->NameString);
+        string name = unit->NameString;
+        var (hostName, index) = ResolveIdentity(unit);
+        return config.Any(node => node.Name == name && node.HostName == hostName && node.Index == index);
     }
 
     public static unsafe ResNodeConfig GetAddonConfig(AtkUnitBase* unit, PositionAnchor anchor = PositionAnchor.TOP_LEFT) {
@@ -39,8 +87,12 @@ internal class AddonManager
 
         pos += GetAnchorOffset(anchor, size);
 
+        var (hostName, index) = ResolveIdentity(unit);
+
         return new ResNodeConfig {
             Name = unit->NameString,
+            HostName = hostName,
+            Index = index,
             DoNotPosition = false,
             DoNotScale = false,
             DoNotOpacity = true,
@@ -60,6 +112,19 @@ internal class AddonManager
         };
     }
 
+    public static string GetNodeLabel(ResNodeConfig node) {
+        bool hasHost = !string.IsNullOrEmpty(node.HostName);
+        bool hasIndex = node.Index > 1;
+        if (hasHost && hasIndex) return $"{node.Name} [{node.HostName}] #{node.Index}";
+        if (hasHost) return $"{node.Name} [{node.HostName}]";
+        if (hasIndex) return $"{node.Name} #{node.Index}";
+        return node.Name;
+    }
+
+    private static string GetNodeId(ResNodeConfig node) {
+        return $"{node.Name}|{node.HostName}|{node.Index}";
+    }
+
     public static unsafe void AddToConfig(AtkUnitBase* unit) {
         if (CheckIfInConfig(unit)) {
             return;
@@ -72,7 +137,7 @@ internal class AddonManager
 
     public static unsafe void UpdateAddon(ref ResNodeConfig node) {
         RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
+        AtkUnitBase* unit = FindUnit(node);
         if (unit == null) {
             return;
         }
@@ -142,7 +207,7 @@ internal class AddonManager
         for (int index = 0; index < config.Count; index++) {
             ResNodeConfig node = config[index];
 
-            if (ImGui.TreeNode(node.Name + "##RESIZABLEHUD_DROPDOWN_" + node.Name)) {
+            if (ImGui.TreeNode(GetNodeLabel(node) + "##RESIZABLEHUD_DROPDOWN_" + GetNodeId(node))) {
                 if (node.Editing) {
                     DrawNodeEditor(ref node);
                 }
@@ -226,7 +291,7 @@ internal class AddonManager
 
     private static unsafe void RefreshValues(ref ResNodeConfig node) {
         RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
+        AtkUnitBase* unit = FindUnit(node);
 
         if (unit == null) {
             return;
@@ -272,7 +337,7 @@ internal class AddonManager
 
     private static unsafe void DrawNodePreview(ref ResNodeConfig node) {
         RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
+        AtkUnitBase* unit = FindUnit(node);
 
         if (unit == null) {
             return;
@@ -286,7 +351,7 @@ internal class AddonManager
 
         drawist.AddRect(pos, pos + size, NodeColor);
         drawist.AddCircleFilled(pos + offset, 4.0f, NodeAnchorColor);
-        drawist.AddText(pos, NodeColor, node.Name);
+        drawist.AddText(pos, NodeColor, GetNodeLabel(node));
 
         if (node.Attachment != "") {
             AtkUnitBase* parent = manager->GetAddonByName(node.Attachment);
@@ -304,7 +369,7 @@ internal class AddonManager
 
     private static unsafe void DrawNodeEditor(ref ResNodeConfig nodeConfig) {
         RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(nodeConfig.Name);
+        AtkUnitBase* unit = FindUnit(nodeConfig);
 
         // ImGui.SetNextFrameWantCaptureMouse(true);
 
@@ -324,7 +389,7 @@ internal class AddonManager
         drawlist.AddCircleFilled(pos + offset, 4.0f, NodeAnchorColor);
         // drawList.AddRectFilled(bottom, bottom + boxSize, NodeAnchorColor);
         // drawList.AddRectFilled(right, right + boxSize, NodeAnchorColor);
-        drawlist.AddText(pos, NodeColor, nodeConfig.Name);
+        drawlist.AddText(pos, NodeColor, GetNodeLabel(nodeConfig));
 
         // Doesn't work well (refresh rate related?)
         // NodeEditorMouseControls(ref nodeConfig, pos, size, bottom, right, boxSize);
@@ -340,7 +405,7 @@ internal class AddonManager
         Vector2 size = Vector2.Zero;
         Vector2 vp = ImGui.GetMainViewport().Size;
         RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
+        AtkUnitBase* unit = FindUnit(node);
 
         if (unit != null) {
             size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
@@ -431,7 +496,7 @@ internal class AddonManager
 
     private static unsafe void NodeEditorMouseControls(ref ResNodeConfig node, Vector2 tl_pos, Vector2 size, Vector2 bottom, Vector2 right, Vector2 box_size) {
         RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
+        AtkUnitBase* unit = FindUnit(node);
         Vector2 mpos = ImGui.GetMousePos();
 
         if (RaptureAtkUnitManagerHelper.GetPointIntersectsNode(unit->RootNode, mpos)) {
@@ -492,7 +557,7 @@ internal class AddonManager
 
     private static unsafe void NodeEditorKeyboardControls(ref ResNodeConfig node, Vector2 tl_pos, Vector2 size, Vector2 box_size) {
         RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
+        AtkUnitBase* unit = FindUnit(node);
         Vector2 vp = ImGui.GetMainViewport().Size;
         float v = 0.0f;
         float h = 0.0f;
@@ -529,7 +594,7 @@ internal class AddonManager
 
     private static unsafe Vector2 GetTLPos(ref ResNodeConfig node) {
         RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
+        AtkUnitBase* unit = FindUnit(node);
 
         if (unit != null && unit->IsReady) {
             Vector2 size = RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode);
@@ -596,7 +661,7 @@ internal class AddonManager
 
     private static unsafe void DrawScaleOption(ref ResNodeConfig node, float WIDTH) {
         RaptureAtkUnitManager* manager = AtkStage.Instance()->RaptureAtkUnitManager;
-        AtkUnitBase* unit = manager->GetAddonByName(node.Name);
+        AtkUnitBase* unit = FindUnit(node);
         Vector2 size = unit != null ? RaptureAtkUnitManagerHelper.GetNodeScaledSize(unit->RootNode) : Vector2.Zero;
 
         ImGui.SetNextItemWidth(WIDTH);
