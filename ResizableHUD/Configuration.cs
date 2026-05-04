@@ -52,7 +52,7 @@ public class Configuration : IPluginConfiguration {
     #endregion
 
     public List<ResNodeConfig>? GetCurrentNodeConfig() {
-        ulong cid = Service.ClientState.LocalContentId;
+        ulong cid = Service.PlayerState.ContentId;
         if (CIDNodeConfigMap.ContainsKey(cid)) {
             return CIDNodeConfigMap[cid];
         }
@@ -62,7 +62,7 @@ public class Configuration : IPluginConfiguration {
     }
 
     public void Initialize() {
-        ulong cid = Service.ClientState.LocalContentId;
+        ulong cid = Service.PlayerState.ContentId;
 
         if (nodeConfigs != null) {
             CIDNodeConfigMap.Add(cid, nodeConfigs);
