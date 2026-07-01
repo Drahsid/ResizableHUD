@@ -84,7 +84,12 @@ internal class ConfigWindow : WindowWrapper {
                     AtkUnitBase* unit = (AtkUnitBase*)PopupCollisions[index];
 
                     if (!AddonManager.CheckIfInConfig(unit)) {
-                        if (ImGui.Button(unit->NameString)) {
+                        var (hostName, idx) = AddonManager.ResolveIdentity(unit);
+                        string label = unit->NameString;
+                        if (!string.IsNullOrEmpty(hostName)) label += $" [{hostName}]";
+                        if (idx > 1) label += $" #{idx}";
+                        label += $"##RESIZABLEHUD_INSPECTOR_{(nint)unit:X}";
+                        if (ImGui.Button(label)) {
                             AddonManager.AddToConfig(unit);
                         }
                     }
